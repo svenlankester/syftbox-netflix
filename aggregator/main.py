@@ -7,11 +7,11 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from syftbox.lib import Client
+from syftbox.lib import Client, SyftPermission
 from sklearn.preprocessing import LabelEncoder
 
 API_NAME = os.getenv("API_NAME")
-DATA_DIR = os.getenv("AGGREGATOR_DATA_DIR")
+DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 
 def network_participants(datasite_path: Path) -> list[str]:
     """
@@ -87,8 +87,8 @@ def mlp_fedavg(weights: list, biases: list) -> tuple[list, list]:
 
     return fedavg_weights, fedavg_biases
     
-def create_tvseries_vocab():
-    zip_file = os.path.join(DATA_DIR, "netflix_series_2024-12.csv.zip")
+def create_tvseries_vocab(shared_folder: Path):
+    zip_file = os.path.join(os.getcwd(), "aggregator", "data", "netflix_series_2024-12.csv.zip")  # TODO: retrieve most up-to-date file
     df = pd.read_csv(zip_file)
 
     label_encoder = LabelEncoder()
@@ -96,25 +96,42 @@ def create_tvseries_vocab():
 
     vocab_mapping = {title: idx for idx, title in enumerate(label_encoder.classes_)}
     
-    output_path = os.path.join(DATA_DIR, "tv-series_vocabulary.json")
+    output_path = os.path.join(str(shared_folder), "tv-series_vocabulary.json")
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(vocab_mapping, f, ensure_ascii=False, indent=4)
+
+def create_shared_folder(path: Path, client: Client, participants: list) -> Path:
+    """
+    Create a shared folder accessible to participants only with the computations
+    """
+
+    shared_datapath: Path = path / "api_data" / "netflix_data"
+    os.makedirs(shared_datapath, exist_ok=True)
+
+    # Set the default permissions
+    permissions = SyftPermission.datasite_default(email=client.email)
+    for participant in participants: # set read permission to participants
+        permissions.read.append(participant)
+    permissions.save(shared_datapath)  # update the ._syftperm
+
+    return shared_datapath
 
 if __name__ == "__main__":
     client = Client.load()
 
-    # Create a Vocabulary of TV Series
-    create_tvseries_vocab()
-
     datasite_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 
     peers = network_participants(datasite_path)         # check participant of netflix trend
+
+    # Here we do not use public folder for aggregator, but an api_folder accesible to participants only
+    shared_folder_path = create_shared_folder(Path(client.datasite_path), client, peers)
+    
+    # Create a Vocabulary of TV Series
+    create_tvseries_vocab(shared_folder_path)
     
     # MLP use case -> FedAvg
     weights, biases = get_users_mlp_parameters(datasite_path, peers)    # MLP: retrieve the path to weights and bias
     fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
     
-    output_mlp_fedavg = client.datasite_path / "public"
-    
-    joblib.dump(fedavg_weights, output_mlp_fedavg / "netflix_mlp_fedavg_weights.joblib")
-    joblib.dump(fedavg_biases, output_mlp_fedavg / "netflix_mlp_fedavg_biases.joblib")
+    joblib.dump(fedavg_weights, shared_folder_path / "netflix_mlp_fedavg_weights.joblib")
+    joblib.dump(fedavg_biases, shared_folder_path / "netflix_mlp_fedavg_biases.joblib")

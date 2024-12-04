@@ -5,8 +5,7 @@ import joblib
 import json
 import numpy as np
 import pandas as pd
-import unicodedata
-import re
+import subprocess
 from rapidfuzz import process
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +14,7 @@ from collections import Counter
 from dotenv import load_dotenv
 from fetcher import NetflixFetcher
 from utils.ml import train_model, SequenceModel
-from utils.checks import is_file_modified_today
+from utils.checks import is_file_modified_today, should_run
 
 # Load environment variables
 load_dotenv()
@@ -250,14 +249,30 @@ def create_view_counts_vector(aggregated_data: pd.DataFrame) -> np.ndarray:
 
 def main():
 
+    client = Client.load()
+
+    # This code checks if the current datasite relates to aggregator or not
+    #       If it is aggreator: assume execution from aggregator/main.py
+    #       otherwise keep it here.
+    if (client.email == AGGREGATOR_DATASITE):
+        print(f">> {API_NAME} | Running as aggregator.")
+        subprocess.run([sys.executable, "aggregator/main.py"])
+        sys.exit(0)
+    else:
+        print(f">> {API_NAME} | Running as participant.")
+
+    
+    if not should_run():
+        print(f"Skipping {API_NAME}, not enough time has passed.")
+        exit(0)
+
+
     try:
         latest_data_file = get_or_download_latest_data()
         print(f"Process completed. Latest data file is: {latest_data_file}")
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
-        
-    client = Client.load()
 
     restricted_public_folder = client.api_data(API_NAME)    # create an API
     create_public_folder(restricted_public_folder, client)  # create the dedicated API folder
