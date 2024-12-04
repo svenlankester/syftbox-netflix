@@ -167,3 +167,7 @@ test_sandbox
 mock_dataset_location
 logs
 .vscode
+script_timestamps/*
+
+# TV series webscrapper
+aggregator/netflix_series.py
