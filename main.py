@@ -227,10 +227,16 @@ def match_title(title, vocabulary: dict, threshold=80):
     # If no match, return -1
     return -1
 
-def create_view_counts_vector(aggregated_data: pd.DataFrame) -> np.ndarray:
-    # load vocabulary from aggregator (LATER BE UPDATED TO RETRIEVE FROM AGGREGATOR'S PUBLIC SITE)
-    with open("./aggregator/data/tv-series_vocabulary.json", "r", encoding="utf-8") as file:
-        vocabulary = json.load(file)
+def create_view_counts_vector(aggregated_data: pd.DataFrame, parent_path: Path) -> np.ndarray:
+    # TODO: load vocabulary from aggregator (LATER BE UPDATED TO RETRIEVE FROM AGGREGATOR'S PUBLIC SITE)
+    try:
+        shared_file = os.path.join(str(parent_path), AGGREGATOR_DATASITE, "api_data", "netflix_data", "tv-series_vocabulary.json")
+        with open(shared_file, "r", encoding="utf-8") as file:
+            vocabulary = json.load(file)
+    except:
+        # TODO: to remove once available in the Aggregator
+        with open("./aggregator/data/tv-series_vocabulary.json", "r", encoding="utf-8") as file:
+            vocabulary = json.load(file)
 
     aggregated_data["ID"] = aggregated_data["show"].apply(lambda x: match_title(x, vocabulary))
     
@@ -327,7 +333,7 @@ def main():
     # - loaded with the original NetflixViewingHistory.csv
     sequence_recommender = SequenceModel(viewing_history)
     
-    view_counts_vector = create_view_counts_vector(sequence_recommender.aggregated_data)
+    view_counts_vector = create_view_counts_vector(sequence_recommender.aggregated_data, client.datasite_path.parent)
     private_tvseries_views_file: Path = private_folder / "tvseries_views_sparse_vector.npy"
     np.save(str(private_tvseries_views_file), view_counts_vector)
     
