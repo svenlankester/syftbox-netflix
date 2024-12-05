@@ -7,6 +7,7 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from ..utils.checks import should_run
 from syftbox.lib import Client, SyftPermission
 from sklearn.preprocessing import LabelEncoder
 
@@ -118,6 +119,10 @@ def create_shared_folder(path: Path, client: Client, participants: list) -> Path
 
 if __name__ == "__main__":
     client = Client.load()
+
+    if not should_run(60):
+        print(f"Skipping {API_NAME} as Aggregator, not enough time has passed.")
+        exit(0)
 
     datasite_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 
