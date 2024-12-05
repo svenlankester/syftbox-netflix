@@ -7,7 +7,7 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from ..utils.checks import should_run
+from utils.checks import should_run
 from syftbox.lib import Client, SyftPermission
 from sklearn.preprocessing import LabelEncoder
 
