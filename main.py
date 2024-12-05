@@ -13,7 +13,7 @@ from syftbox.lib import Client, SyftPermission
 from collections import Counter
 from dotenv import load_dotenv
 from fetcher import NetflixFetcher
-from utils.ml import train_model, SequenceModel
+from utils.ml import train_model, SequenceData
 from utils.checks import is_file_modified_today, should_run
 
 # Load environment variables
@@ -329,9 +329,10 @@ def main():
     joblib.dump(mlp.coefs_, str(mlp_weights))
     joblib.dump(mlp.intercepts_, str(mlp_bias))
 
-    # Train locally a sequence model to predict next series (filter by > 1 episodes)
+    # Create a sequence data (filter by > 1 episodes)
+    # Columns: series (TV series title), Total_Views (quantity), First_Seen (datetime)
     # - loaded with the original NetflixViewingHistory.csv
-    sequence_recommender = SequenceModel(viewing_history)
+    sequence_recommender = SequenceData(viewing_history)
     
     view_counts_vector = create_view_counts_vector(sequence_recommender.aggregated_data, client.datasite_path.parent)
     private_tvseries_views_file: Path = private_folder / "tvseries_views_sparse_vector.npy"

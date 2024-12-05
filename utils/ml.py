@@ -9,10 +9,9 @@ from sklearn.neural_network import MLPClassifier
 from datetime import datetime
 import re
 
-class SequenceModel:
+class SequenceData:
     """
-    This class creates a sequence model to predict/recommend the next show.
-    From the original data, it creates an ordered dataframe from oldest to newest,
+    This class creates, from the original data, an ordered dataframe from oldest to newest,
     with the attributes First_Seen (date), a number of episodes seen.
     """
     def __init__(self, dataset: np.ndarray):
