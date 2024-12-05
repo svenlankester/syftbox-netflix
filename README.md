@@ -44,13 +44,13 @@ _Tested on Linux and MacOS._
    - Copy this repository to your SyftBox `apis` folder:
    ```bash
    cd ~/SyftBox/apis
-   git clone https://github.com/gubertoli/syftbox-netflix.git netflix_trend_participant
+   git clone https://github.com/gubertoli/syftbox-netflix.git netflix_trend
    ```
 3. **⚠️ Set Up the Environment** 
 
-   - You shall create a `.env` file with your data in the `netflix_trend_participant`. 
+   - You shall create a `.env` file with your data in the `netflix_trend`. 
    ```bash
-   cd netflix_trend_participant
+   cd netflix_trend
    cp .env.example .env
    ```
 
@@ -74,21 +74,16 @@ The data provided by Netflix (Viewing History) is a comma-separated file (CSV), 
 
 1. **Aggregated / PET Files:**
 
-   - 📂 Path: `/SyftBox/datasites/<your-email>/api_data/netflix_trend_participant/`
-   - This folder contains the aggregated and/or processed (privacy enhanced) Netflix viewing history, accessible to aggregator. For instance, parameters of machine learning models for federated learning or differential private metrics.
+   - 📂 Path: `/SyftBox/datasites/<your-email>/api_data/netflix_trend/`
+   - This folder contains the aggregated and/or processed (privacy enhanced) Netflix viewing history, **accessible to aggregator**. For instance, parameters of machine learning models for federated learning or differential private data.
 
-2. **Full Viewing History:**
+2. **Private Processed Files:**
 
    - 📂 File: `/SyftBox/datasites/<your-email>/private/netflix_data/netflix_full.npy`
-   - Contains the full version of the Netflix viewing history, stored privately and not accessible externally. This could be used as a starting point for PETs evaluations,
+   - Contains the full version of the Netflix viewing history, stored privately and **not accessible to others**. This could be used as a starting point for PETs processing.
 
----
-
-## 🔮 Future Work
-
-- **Noise Addition:** Implement differential privacy by adding noise to the reduced data.
-- 📈 **Trend Analysis:** Develop algorithms for analyzing viewing trends across participants while preserving privacy.
-- 🤖 **Automation:** Streamline the workflow to minimize manual setup requirements.
+   - 📂 File: `/SyftBox/datasites/<your-email>/private/netflix_data/tvseries_views_sparse_vector.npy`
+   - It is a sparse one-hot encoded vectors of TV series and number of episodes seen, stored privately and **not accessible to other**. The vocabulary to check which TV series represent certain index is available from the aggregator only to the participants of this app.
 
 ---
 
