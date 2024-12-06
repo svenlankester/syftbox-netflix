@@ -156,7 +156,7 @@ def get_or_download_latest_data() -> Tuple[str, np.ndarray]:
     return latest_data_file, load_csv_to_numpy(latest_data_file)
 
 ## ==================================================================================================
-## Data Processing (2) - Data Enrichment (shows) and view count vectors
+## Data Processing (2) - Data Enrichment (shows)
 ## ==================================================================================================
 
 def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
@@ -195,6 +195,10 @@ def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
     print(f"Not Found Titles: {len(my_titles) - len(my_found_titles)}")
 
     return joined_data
+
+## ==================================================================================================
+## Data Processing (3) - View Count Vectors
+## ==================================================================================================
 
 def match_title(title, vocabulary: dict, threshold=80):
     # Exact match
