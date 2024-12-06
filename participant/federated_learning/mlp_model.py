@@ -1,41 +1,18 @@
 # Routines for ML
 # Reference: https://syftbox.openmined.org/datasites/andrew@openmined.org/netflix_fl/example_job/job.py
 
+import re
+import joblib
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from datetime import datetime
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.neural_network import MLPClassifier
-from datetime import datetime
-import re
+from sklearn.model_selection import train_test_split
 
-class SequenceData:
-    """
-    This class creates, from the original data, an ordered dataframe from oldest to newest,
-    with the attributes First_Seen (date), a number of episodes seen.
-    """
-    def __init__(self, dataset: np.ndarray):
-        self.dataset = dataset
-        self.aggregated_data = self.process_dataset()
-
-    def process_dataset(self):
-        """
-        This method get the original data and organizes sequentially by oldest to the newest seen TV Series.
-        Aggregating the number of episodes seen (Total_Views) and the stating date (Fist_Seen).
-        """
-        df = pd.DataFrame(self.dataset, columns=["Title", "Date"])
-        df = extract_features(df).copy()
-        df_aggregated = (
-            df.groupby("show")
-            .agg(Total_Views=("Date", "size"), First_Seen=("Date", "min"))
-            .reset_index()
-        )
-        df_aggregated = df_aggregated.sort_values(by="First_Seen", ascending=True).reset_index(drop=True)
-        
-        df_filtered = df_aggregated[df_aggregated["Total_Views"] > 1].reset_index(drop=True)
-        return df_filtered
-        
-    
+## ==================================================================================================
+## Data Processing
+## ==================================================================================================
 
 def extract_features(df):
     # Extract show name and season from title
@@ -70,6 +47,11 @@ def prepare_data(file_path):
     y = df['show_encoded'].shift(-1).fillna(0).astype(int)
     
     return X[:-1], y[:-1], le_show
+
+
+## ==================================================================================================
+## Model Training
+## ==================================================================================================
 
 def train_model(dataset_location):
     # Load and prepare data
@@ -108,6 +90,32 @@ def train_model(dataset_location):
     #   mlp.fit(X_full_scaled, y_full)
     num_samples = X.shape[0]
     return mlp, scaler, le_show, num_samples
+
+## ==================================================================================================
+## Predictor Process
+## ==================================================================================================
+def train_and_save_mlp(latest_data_file, restricted_public_folder):
+    """
+    Train the MLP model and save its weights and biases.
+
+    Args:
+        latest_data_file: Path to the latest data file.
+        restricted_public_folder: Path to the restricted public folder.
+    """
+    # Train the MLP model
+    mlp, _, _, num_samples = train_model(latest_data_file)
+
+    # Define paths
+    mlp_weights_file = restricted_public_folder / f"netflix_mlp_weights_{num_samples}.joblib"
+    mlp_bias_file = restricted_public_folder / f"netflix_mlp_bias_{num_samples}.joblib"
+
+    # Save MLP weights and biases
+    joblib.dump(mlp.coefs_, str(mlp_weights_file))
+    joblib.dump(mlp.intercepts_, str(mlp_bias_file))
+
+## ==================================================================================================
+## Inference Process
+## ==================================================================================================
 
 def get_current_day_of_week():
     """

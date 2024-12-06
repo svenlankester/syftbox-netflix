@@ -1,10 +1,6 @@
 import unittest
 import numpy as np
-from main import (
-    extract_titles,
-    convert_dates_to_weeks,
-    orchestrate_reduction,
-)
+from participant.federated_analytics.data_processing import extract_titles, convert_dates_to_weeks, orchestrate_reduction
 
 class TestDataProcessingReduction(unittest.TestCase):
     @classmethod

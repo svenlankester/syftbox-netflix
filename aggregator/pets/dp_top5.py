@@ -60,4 +60,4 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants):
     else:
         destination_folder: Path = ( datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME )
         vocab: Path = datasites_path / peer / "api_data" / API_NAME / "tv-series_vocabulary.json"
-        calculate_top5(available_dp_vectors, destination_folder, vocab)datasites_path / peer / "api_data" / API_NAME
+        calculate_top5(available_dp_vectors, destination_folder, vocab)

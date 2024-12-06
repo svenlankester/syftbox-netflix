@@ -19,12 +19,15 @@ from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 from aggregator.main import (
     network_participants,
-    extract_number,
     get_users_mlp_parameters,
-    weighted_average,
     mlp_fedavg,
     create_tvseries_vocab,
 )
+from aggregator.pets.fedavg_mlp import (
+    extract_number,
+    weighted_average,
+)
+
 
 API_NAME = "mock_api"
 PROJECT_DIR = "test_sandbox"

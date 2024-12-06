@@ -3,17 +3,8 @@ import unittest
 import numpy as np
 from unittest.mock import patch, MagicMock
 from datetime import datetime
-from main import (
-    load_csv_to_numpy,
-    extract_titles,
-    convert_dates_to_weeks,
-    orchestrate_reduction,
-    aggregate_title_week_counts,
-    get_or_download_latest_data,
-    download_daily_data,
-    get_latest_file,
-)
-
+from participant.main import (load_csv_to_numpy)
+from participant.federated_analytics.data_processing import orchestrate_reduction
 class TestNetflixHistory(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

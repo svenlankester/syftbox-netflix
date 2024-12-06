@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from main import join_viewing_history_with_netflix
+from participant.federated_analytics.data_processing import join_viewing_history_with_netflix
 
 class TestDataProcessingEnrichment(unittest.TestCase):
     def test_join_viewing_history_with_netflix_normal(self):
