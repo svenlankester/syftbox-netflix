@@ -6,6 +6,7 @@ import json
 import numpy as np
 import pandas as pd
 import subprocess
+from typing import Tuple
 from rapidfuzz import process
 from datetime import datetime
 from pathlib import Path
@@ -24,36 +25,6 @@ AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 CSV_NAME = os.getenv("NETFLIX_CSV")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR")
 
-def create_private_folder(path: Path, client: Client) -> Path:
-    """
-    Create a private folder within the specified path.
-
-    This function creates a directory structure containing the NetflixViewingHistory.csv.
-    """
-
-    netflix_datapath: Path = path / "private" / "netflix_data"
-    os.makedirs(netflix_datapath, exist_ok=True)
-
-    # Set the default permissions
-    permissions = SyftPermission.datasite_default(email=client.email)
-    permissions.save(netflix_datapath)  # update the ._syftperm
-
-    return netflix_datapath
-
-def create_public_folder(path: Path, client: Client) -> None:
-    """
-    Create a API public folder within the specified path.
-
-    This function creates a directory for receiving the private enhanced version \
-    of the viewing history.
-    """
-
-    os.makedirs(path, exist_ok=True)
-
-    # Set default permissions for this folder
-    permissions = SyftPermission.datasite_default(email=client.email)
-    permissions.read.append(AGGREGATOR_DATASITE) # set read permission to the aggregator
-    permissions.save(path)
 
 def load_csv_to_numpy(file_path: str) -> np.ndarray:
     """
@@ -75,6 +46,11 @@ def load_csv_to_numpy(file_path: str) -> np.ndarray:
 
     return np.array(cleaned_data)
 
+
+## ==================================================================================================
+## Data Processing (1) - Reduction
+## ==================================================================================================
+
 def extract_titles(history: np.ndarray) -> np.ndarray:
     """
     Extract and reduce titles from the viewing history.
@@ -91,22 +67,6 @@ def convert_dates_to_weeks(history: np.ndarray) -> np.ndarray:
         for date in history[:, 1]
     ])
 
-
-def aggregate_title_week_counts(reduced_data: np.ndarray) -> np.ndarray:
-    """
-    Aggregate the reduced viewing history by counting occurrences for each title and week.
-
-    Args:
-        reduced_data (np.ndarray): A 2D array with titles and weeks.
-
-    Returns:
-        np.ndarray: A 2D array with aggregated counts for each title and week combination.
-    """
-    counts = Counter(map(tuple, reduced_data))
-    aggregated_data = np.array([[title, week, str(count)] for (title, week), count in counts.items()])
-    return aggregated_data
-
-
 def orchestrate_reduction(history: np.ndarray) -> np.ndarray:
     """
     Orchestrates the reduction process for Netflix viewing history.
@@ -115,13 +75,22 @@ def orchestrate_reduction(history: np.ndarray) -> np.ndarray:
     weeks = convert_dates_to_weeks(history)
     return np.column_stack((titles, weeks))
 
-def download_daily_data():
+
+## ==================================================================================================
+## Netflix Loader functions
+## ==================================================================================================
+
+def download_daily_data(output_dir:str, file_name:str) -> None:
     """
     Download Netflix data into today's subfolder.
     """
-    downloader = NetflixFetcher()
+    downloader = NetflixFetcher(output_dir)
     downloader.run()
 
+    # Validate the file exists after download
+    file_path = os.path.join(output_dir, file_name)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Netflix viewing history file was not created: {file_path}")
 
 def get_latest_file(subfolder_path):
     """
@@ -155,22 +124,40 @@ def get_latest_file(subfolder_path):
     latest_file = max(valid_files, key=lambda x: x[1])[0]
     return os.path.join(subfolder_path, latest_file)
 
+def get_or_download_latest_data() -> Tuple[str, np.ndarray]:
+    """
+    Ensure the latest Netflix data exists or download it if missing.
+    After retrieval, load the data into a NumPy array for further processing.
 
-def get_or_download_latest_data():
+    Returns:
+        np.ndarray: The latest Netflix viewing history as a structured array.
     """
-    Ensure latest Netflix data exists or download it.
-    """
+    # Construct paths and file names
     datapath = os.path.expanduser(OUTPUT_DIR)
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(CSV_NAME)[0]
-
     filename = f"{netflix_csv_prefix}_{today_date}.csv"
     file_path = os.path.join(datapath, filename)
 
-    if not os.path.exists(file_path):
-        download_daily_data()
+    try:
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            print(f"Data file not found. Downloading to {file_path}...")
+            download_daily_data(datapath, filename)
 
-    return get_latest_file(datapath)
+    except Exception as e:
+        print(f"Error retrieving Netflix data: {e}")
+        raise
+
+    latest_data_file = get_latest_file(datapath)
+
+    # Load the CSV into a NumPy array
+    print(f"Loading data from {latest_data_file}...")
+    return latest_data_file, load_csv_to_numpy(latest_data_file)
+
+## ==================================================================================================
+## Data Processing (2) - Data Enrichment (shows)
+## ==================================================================================================
 
 def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
     """
@@ -208,6 +195,10 @@ def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
     print(f"Not Found Titles: {len(my_titles) - len(my_found_titles)}")
 
     return joined_data
+
+## ==================================================================================================
+## Data Processing (3) - View Count Vectors
+## ==================================================================================================
 
 def match_title(title, vocabulary: dict, threshold=80):
     # Exact match
@@ -252,41 +243,161 @@ def create_view_counts_vector(aggregated_data: pd.DataFrame, parent_path: Path) 
 
     return sparse_vector
 
+## ==================================================================================================
+## Application functions - Consider refactoring into a separate module
+## ==================================================================================================
 
-def main():
-
-    client = Client.load()
-
-    # This code checks if the current datasite relates to aggregator or not
-    #       If it is aggreator: assume execution from aggregator/main.py
-    #       otherwise keep it here.
-    if (client.email == AGGREGATOR_DATASITE):
+def check_execution_context(client):
+    """
+    Determine and handle execution context (aggregator vs. participant).
+    """
+    if client.email == AGGREGATOR_DATASITE:
         print(f">> {API_NAME} | Running as aggregator.")
         subprocess.run([sys.executable, "aggregator/main.py"])
         sys.exit(0)
     else:
         print(f">> {API_NAME} | Running as participant.")
 
-    
+def setup_environment(client):
+    """
+    Set up public and private folders for data storage.
+
+    Args:
+        client: Client instance for managing API and datasite paths.
+
+    Returns:
+        tuple: Paths to restricted public and private folders.
+    """
+
+    def create_private_folder(path: Path, client: Client) -> Path:
+        """
+        Create a private folder within the specified path.
+
+        This function creates a directory structure containing the NetflixViewingHistory.csv.
+        """
+
+        netflix_datapath: Path = path / "private" / "netflix_data"
+        os.makedirs(netflix_datapath, exist_ok=True)
+
+        # Set the default permissions
+        permissions = SyftPermission.datasite_default(email=client.email)
+        permissions.save(netflix_datapath)  # update the ._syftperm
+
+        return netflix_datapath
+
+    def create_public_folder(path: Path, client: Client) -> None:
+        """
+        Create a API public folder within the specified path.
+
+        This function creates a directory for receiving the private enhanced version \
+        of the viewing history.
+        """
+
+        os.makedirs(path, exist_ok=True)
+
+        # Set default permissions for this folder
+        permissions = SyftPermission.datasite_default(email=client.email)
+        permissions.read.append(AGGREGATOR_DATASITE) # set read permission to the aggregator
+        permissions.save(path)
+
+    restricted_public_folder = client.api_data(API_NAME)
+    create_public_folder(restricted_public_folder, client)
+    private_folder = create_private_folder(client.datasite_path, client)
+    return restricted_public_folder, private_folder
+
+
+## ==================================================================================================
+## Viewing History Aggregation and Storage
+## ==================================================================================================
+
+def aggregate_title_week_counts(reduced_data: np.ndarray) -> np.ndarray:
+    """
+    Aggregate the reduced viewing history by counting occurrences for each title and week.
+
+    Args:
+        reduced_data (np.ndarray): A 2D array with titles and weeks.
+
+    Returns:
+        np.ndarray: A 2D array with aggregated counts for each title and week combination.
+    """
+    counts = Counter(map(tuple, reduced_data))
+    aggregated_data = np.array([[title, week, str(count)] for (title, week), count in counts.items()])
+    return aggregated_data
+
+def aggregate_and_store_history(reduced_history, viewing_history, private_folder, restricted_public_folder):
+    """
+    Process and save the reduced, aggregated, and full viewing history.
+
+    Args:
+        reduced_history: Reduced viewing history data.
+        viewing_history: Full viewing history data.
+        private_folder: Path to the private folder.
+        restricted_public_folder: Path to the restricted public folder.
+    """
+    # Aggregate the reduced information
+    aggregated_history = aggregate_title_week_counts(reduced_history)
+
+    # Define paths
+    public_reduced_file = restricted_public_folder / "netflix_reduced.npy"
+    public_aggregated_file = restricted_public_folder / "netflix_aggregated.npy"
+    private_full_file = private_folder / "netflix_full.npy"
+
+    # Save reduced viewing history
+    np.save(str(public_reduced_file), reduced_history)
+
+    # Save aggregated viewing history
+    np.save(str(public_aggregated_file), aggregated_history)
+
+    # Save full viewing history
+    np.save(str(private_full_file), viewing_history)
+
+    return aggregated_history
+
+## ==================================================================================================
+## Predictor Process
+## ==================================================================================================
+def train_and_save_mlp(latest_data_file, restricted_public_folder):
+    """
+    Train the MLP model and save its weights and biases.
+
+    Args:
+        latest_data_file: Path to the latest data file.
+        restricted_public_folder: Path to the restricted public folder.
+    """
+    # Train the MLP model
+    mlp, _, _, num_samples = train_model(latest_data_file)
+
+    # Define paths
+    mlp_weights_file = restricted_public_folder / f"netflix_mlp_weights_{num_samples}.joblib"
+    mlp_bias_file = restricted_public_folder / f"netflix_mlp_bias_{num_samples}.joblib"
+
+    # Save MLP weights and biases
+    joblib.dump(mlp.coefs_, str(mlp_weights_file))
+    joblib.dump(mlp.intercepts_, str(mlp_bias_file))
+
+
+## ==================================================================================================
+## Orchestrator
+## ==================================================================================================
+
+def main():
+
+    # Load client
+    client = Client.load()
+
+    # Check execution context
+    check_execution_context(client)
+
+    # Skip execution if conditions are not met
     if not should_run():
         print(f"Skipping {API_NAME}, not enough time has passed.")
-        exit(0)
+        sys.exit(0)
 
+    # Set up environment
+    restricted_public_folder, private_folder = setup_environment(client)
 
-    try:
-        latest_data_file = get_or_download_latest_data()
-        print(f"Process completed. Latest data file is: {latest_data_file}")
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
-
-    restricted_public_folder = client.api_data(API_NAME)    # create an API
-    create_public_folder(restricted_public_folder, client)  # create the dedicated API folder
-
-    private_folder = create_private_folder(client.datasite_path, client)
-
-    # First column is title and second column the date
-    viewing_history = load_csv_to_numpy(latest_data_file)
+    # Fetch and load Netflix data
+    latest_data_file, viewing_history = get_or_download_latest_data()
 
     # Reduce the original information
     reduced_history = orchestrate_reduction(viewing_history)
@@ -306,28 +417,17 @@ def main():
 
     ##############
 
-    # Aggregate the reduced information
-    aggregated_history = aggregate_title_week_counts(reduced_history)
+    # Process and save watch history
+    aggregate_and_store_history(
+        reduced_history, 
+        viewing_history, 
+        private_folder, 
+        restricted_public_folder
+    )
 
-    # Saving the reduced Viewing History.
-    public_file: Path = restricted_public_folder / "netflix_reduced.npy"
-    np.save(str(public_file), reduced_history)
+    # Train and save MLP model
+    train_and_save_mlp(latest_data_file, restricted_public_folder)
 
-    # Saving the aggregated Viewing History
-    aggregated_file: Path = restricted_public_folder / "netflix_aggregated.npy"
-    np.save(str(aggregated_file), aggregated_history)
-
-    # Saving the full Viewing History.
-    private_file: Path = private_folder / "netflix_full.npy"
-    np.save(str(private_file), viewing_history)
-
-    # Train a MLP as recommender in the data
-    mlp, _, _, num_samples = train_model(latest_data_file)
-
-    mlp_weights: Path = restricted_public_folder / f"netflix_mlp_weights_{num_samples}.joblib"
-    mlp_bias: Path = restricted_public_folder / f"netflix_mlp_bias_{num_samples}.joblib"
-    joblib.dump(mlp.coefs_, str(mlp_weights))
-    joblib.dump(mlp.intercepts_, str(mlp_bias))
 
     # Create a sequence data (filter by > 1 episodes)
     # Columns: series (TV series title), Total_Views (quantity), First_Seen (datetime)
