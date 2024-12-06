@@ -98,16 +98,34 @@ class TestNetflixHistory(unittest.TestCase):
         np.testing.assert_array_equal(result, expected)
 
     @patch("main.NetflixFetcher")
-    def test_download_daily_data(self, mock_fetcher):
-        # Simulate NetflixFetcher.run
+    @patch("os.path.exists")
+    def test_download_daily_data(self, mock_exists, mock_fetcher):
+        """
+        Test `download_daily_data` to ensure NetflixFetcher is called and the file existence is validated.
+        """
+        # Mock the NetflixFetcher instance and its run method
         mock_fetcher_instance = MagicMock()
         mock_fetcher.return_value = mock_fetcher_instance
 
-        # Run the function
-        download_daily_data()
+        # Simulate `os.path.exists` returning True after download
+        mock_exists.return_value = True
 
-        # Assert the downloader's `run` method was called
+        # Define test parameters
+        output_dir = "/mocked/output"
+        file_name = "NetflixViewingActivity.csv"
+        file_path = os.path.join(output_dir, file_name)
+
+        # Run the function
+        download_daily_data(output_dir, file_name)
+
+        # Assert NetflixFetcher is instantiated with the correct arguments
+        mock_fetcher.assert_called_once_with(output_dir)
+
+        # Assert the `run` method of NetflixFetcher was called
         mock_fetcher_instance.run.assert_called_once()
+
+        # Assert `os.path.exists` is called with the correct file path
+        mock_exists.assert_called_once_with(file_path)
 
     @patch("main.CSV_NAME", "NetflixViewingActivity.csv")
     @patch("os.listdir", return_value=[
@@ -138,7 +156,8 @@ class TestNetflixHistory(unittest.TestCase):
     @patch("main.OUTPUT_DIR", "/mocked/netflix_data")
     @patch("main.CSV_NAME", "NetflixViewingActivity.csv")
     @patch("main.datetime")  # Mock datetime module inside the function
-    def test_get_or_download_latest_data_file_exists(self, mock_datetime, mock_exists, mock_download, mock_get_latest):
+    @patch("main.load_csv_to_numpy")  # Mock read_csv
+    def test_get_or_download_latest_data_file_exists(self, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
         """
         Test when today's file already exists.
         """
@@ -161,7 +180,7 @@ class TestNetflixHistory(unittest.TestCase):
         # Assertions
         mock_download.assert_not_called()  # Download should not be triggered
         mock_get_latest.assert_called_once_with("/mocked/netflix_data")
-        self.assertEqual(result, file_path)
+        mock_load_csv_to_numpy.assert_called_once_with(file_path)  # Assert pd.read_csv is called
 
     @patch("main.get_latest_file")
     @patch("main.download_daily_data")
@@ -169,7 +188,8 @@ class TestNetflixHistory(unittest.TestCase):
     @patch("main.OUTPUT_DIR", "/mocked/netflix_data")
     @patch("main.CSV_NAME", "NetflixViewingActivity.csv")
     @patch("main.datetime")  # Mock datetime module inside the function
-    def test_get_or_download_latest_data_file_missing(self, mock_datetime, mock_exists, mock_download, mock_get_latest):
+    @patch("main.load_csv_to_numpy")  # Mock read_csv
+    def test_get_or_download_latest_data_file_missing(self, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
         """
         Test when today's file does not exist, and download is triggered.
         """
@@ -180,8 +200,8 @@ class TestNetflixHistory(unittest.TestCase):
         today_date = "2024-11-27"
         file_path = f"/mocked/netflix_data/NetflixViewingActivity_{today_date}.csv"
 
-        # Mock os.path.exists to simulate the file does not exist
-        mock_exists.side_effect = lambda path: path != file_path
+        # Mock os.path.exists behavior: first return False, then True
+        mock_exists.return_value = False
 
         # Mock get_latest_file to return the new file after download
         mock_get_latest.return_value = file_path
@@ -192,7 +212,7 @@ class TestNetflixHistory(unittest.TestCase):
         # Assertions
         mock_download.assert_called_once()  # Ensure download is triggered
         mock_get_latest.assert_called_once_with("/mocked/netflix_data")
-        self.assertEqual(result, file_path)
+        mock_load_csv_to_numpy.assert_called_once_with(file_path)  # Assert pd.read_csv is called
 
 if __name__ == "__main__":
     unittest.main()
