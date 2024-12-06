@@ -27,7 +27,9 @@ from aggregator.main import (
 )
 
 API_NAME = "mock_api"
-DATA_DIR = "test_sandbox/TestAggregatorMain"
+PROJECT_DIR = "test_sandbox"
+DATA_DIR = "test_sandbox/aggregator/data"
+SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
 
 class TestAggregatorMain(unittest.TestCase):
     """
@@ -39,10 +41,15 @@ class TestAggregatorMain(unittest.TestCase):
         """
         Set up the test environment by creating a sandbox directory.
         """
-        cls.base_path = Path("test_sandbox/TestAggregatorMain")
+        cls.base_path = Path(DATA_DIR)
         if cls.base_path.exists():
             shutil.rmtree(cls.base_path)
         cls.base_path.mkdir(parents=True, exist_ok=True)
+
+        cls.shared_path = Path(SHARED_FOLDER)
+        if cls.shared_path.exists():
+            shutil.rmtree(cls.shared_path)
+        cls.shared_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -51,6 +58,9 @@ class TestAggregatorMain(unittest.TestCase):
         """
         if cls.base_path.exists():
             shutil.rmtree(cls.base_path)
+
+        if cls.shared_path.exists():
+            shutil.rmtree(cls.shared_path)
 
     def setUp(self):
         """
@@ -196,7 +206,8 @@ class TestAggregatorMain(unittest.TestCase):
         np.testing.assert_array_equal(fedavg_biases[0], expected_biases[0])
 
     @patch("aggregator.main.DATA_DIR", DATA_DIR)
-    def test_create_tvseries_vocab(self):
+    @patch("os.getcwd")
+    def test_create_tvseries_vocab(self, mock_getcwd):
         """
         Test creation of vocabulary mapping from TV series data.
         Expected: Correct vocabulary mapping JSON file is created from CSV data.
@@ -209,9 +220,10 @@ class TestAggregatorMain(unittest.TestCase):
             "Stranger Things"
         ])
 
+        mock_getcwd.return_value = PROJECT_DIR
         zip_file_path = Path(DATA_DIR) / "netflix_series_2024-12.csv.zip"
         csv_file_path = Path(DATA_DIR) / "netflix_series_2024-12.csv"
-        vocab_file_path = Path(DATA_DIR) / "tv-series_vocabulary.json"
+        vocab_file_path = Path(SHARED_FOLDER) / "tv-series_vocabulary.json"
 
         Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -221,7 +233,7 @@ class TestAggregatorMain(unittest.TestCase):
         with zipfile.ZipFile(zip_file_path, 'w') as zipf:
             zipf.write(csv_file_path, arcname=csv_file_path.name)
 
-        create_tvseries_vocab()
+        create_tvseries_vocab(SHARED_FOLDER)
 
         with open(vocab_file_path, 'r', encoding='utf-8') as f:
             vocab_mapping = json.load(f)

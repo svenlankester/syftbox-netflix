@@ -7,7 +7,7 @@ from pathlib import Path
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from datetime import datetime
-from utils.ml import SequenceModel, extract_features, prepare_data, train_model, get_recommendation
+from utils.ml import SequenceData, extract_features, prepare_data, train_model, get_recommendation
 
 class TestMLRoutines(unittest.TestCase):
     @classmethod
@@ -95,7 +95,7 @@ class TestMLRoutines(unittest.TestCase):
 
     def test_process_dataset(self):
         """
-        Test SequenceModel data processing and aggregation.
+        Test SequenceData data processing and aggregation.
 
         Verifies that the dataset is sorted by 'First_Seen' and filtered
         to include only shows with multiple views.
@@ -104,7 +104,7 @@ class TestMLRoutines(unittest.TestCase):
             Input: Multiple entries of "Show A" and "Show B".
             Output: Aggregated views and earliest dates per show.
         """
-        model = SequenceModel(self.dataset)
+        model = SequenceData(self.dataset)
         df_aggregated = model.aggregated_data
 
         # Ensure consistent date formats in expected results
