@@ -38,8 +38,7 @@ def calculate_top5(files: list[Path], destination_folder: Path, vocab: Path):
         json.dump({"names": top5_names, "counts": top5_values.tolist()}, f, indent=4)
 
     
-
-    
+  
 
 def dp_top5_series(datasites_path: Path, peers: list[str], min_participants):
     """
@@ -50,7 +49,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants):
 
     for peer in peers:
         dir: Path = datasites_path / peer / "api_data" / API_NAME
-        file: Path =dir / dp_file
+        file: Path = dir / dp_file
         
         if file.exists():
             available_dp_vectors.append(file)
@@ -61,4 +60,4 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants):
     else:
         destination_folder: Path = ( datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME )
         vocab: Path = datasites_path / peer / "api_data" / API_NAME / "tv-series_vocabulary.json"
-        calculate_top5(available_dp_vectors, destination_folder, vocab)
+        calculate_top5(available_dp_vectors, destination_folder, vocab)datasites_path / peer / "api_data" / API_NAME
