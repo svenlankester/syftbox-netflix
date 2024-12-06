@@ -1,121 +1,18 @@
 # Refence: https://syftbox-documentation.openmined.org/cpu-tracker-2
 
 import os
-import re
 import joblib
-import json
-import numpy as np
-import pandas as pd
 from pathlib import Path
 from utils.checks import should_run
-from syftbox.lib import Client, SyftPermission
-from sklearn.preprocessing import LabelEncoder
+from utils.vocab import create_tvseries_vocab
+from utils.syftbox import network_participants, create_shared_folder
+from pets.fedavg_mlp import get_users_mlp_parameters, mlp_fedavg
+from pets.dp_top5 import dp_top5_series
+from syftbox.lib import Client
+
 
 API_NAME = os.getenv("API_NAME")
 DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
-
-def network_participants(datasite_path: Path) -> list[str]:
-    """
-    Network Participants Discovery:
-    Retrieves a list of user directories (participants) in a given datasite path. 
-    This function scans the network for all available peers by looking at directories in the datasite path.
-    
-    By looking for "api_data / API_NAME" only those from the specific app will be considered.
-    
-    """
-
-    entries = sorted(os.listdir(datasite_path))
-    users = []
-
-    for entry in entries:
-        if Path(datasite_path / entry / "api_data" / API_NAME).is_dir():
-            users.append(entry)
-
-    return users
-
-def extract_number(file_name):
-    match = re.search(r'_(\d+)\.joblib$', file_name)
-    return int(match.group(1)) if match else -1
-
-
-def get_users_mlp_parameters(
-        datasites_path: Path, peers: list[str]
-) -> tuple[list, list]:
-    """
-    This method retrieve the parameters from the local trained MLP. Those files have the names:
-    - netflix_mlp_weights_<NUM_SAMPLES>.joblib
-    - netflix_mlp_bias_<NUM_SAMPLES>.joblib
-
-    Returns a tuple of (weights, biases) from all participants
-    """
-    
-    weights = []
-    biases = []
-
-    for peer in peers:
-        dir = datasites_path / peer / "api_data" / API_NAME
-
-        weight = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and "mlp_weights" in f]
-        bias = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and "mlp_bias" in f]
-        weight = max(weight, key=extract_number, default=None)  # get the greater 
-        bias = max(bias, key=extract_number, default=None)      # get the greater
-
-        weights.append(dir / weight)
-        biases.append(dir / bias)
-
-    return weights, biases
-
-def weighted_average(parameters, samples):
-    total_samples = sum(samples)
-    weighted_params = [
-        np.multiply(param, n / total_samples) for param, n in zip(parameters, samples)
-    ]
-    return np.sum(weighted_params, axis=0)
-
-
-def mlp_fedavg(weights: list, biases: list) -> tuple[list, list]:
-    """
-    FedAvg computes the weighted average of parameters (weights and biases) from multiple users.
-    The weights for averaging are proportional to the number of samples each user has.
-    """
-    samples = [extract_number(str(n)) for n in weights]
-    
-    weight_matrices = [joblib.load(weight_path) for weight_path in weights]
-    bias_vectors = [joblib.load(bias_path) for bias_path in biases]
-
-    fedavg_weights = [weighted_average([w[layer] for w in weight_matrices], samples) for layer in range(len(weight_matrices[0]))]
-    fedavg_biases = [weighted_average([b[layer] for b in bias_vectors], samples) for layer in range(len(bias_vectors[0]))]
-
-    return fedavg_weights, fedavg_biases
-    
-def create_tvseries_vocab(shared_folder: Path):
-    zip_file = os.path.join(os.getcwd(), "aggregator", "data", "netflix_series_2024-12.csv.zip")  # TODO: retrieve most up-to-date file
-    df = pd.read_csv(zip_file)
-
-    label_encoder = LabelEncoder()
-    label_encoder.fit(df['Title'])
-
-    vocab_mapping = {title: idx for idx, title in enumerate(label_encoder.classes_)}
-    
-    output_path = os.path.join(str(shared_folder), "tv-series_vocabulary.json")
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(vocab_mapping, f, ensure_ascii=False, indent=4)
-
-def create_shared_folder(path: Path, client: Client, participants: list) -> Path:
-    """
-    Create a shared folder accessible to participants only with the computations
-    """
-
-    shared_datapath: Path = path / "api_data" / "netflix_data"
-    os.makedirs(shared_datapath, exist_ok=True)
-
-    # Set the default permissions
-    permissions = SyftPermission.datasite_default(email=client.email)
-    for participant in participants: # set read permission to participants
-        permissions.read.append(participant)
-    permissions.save(shared_datapath)  # update the ._syftperm
-
-    return shared_datapath
 
 if __name__ == "__main__":
     client = Client.load()
@@ -124,9 +21,9 @@ if __name__ == "__main__":
         print(f"Skipping {API_NAME} as Aggregator, not enough time has passed.")
         exit(0)
 
-    datasite_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
+    datasites_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 
-    peers = network_participants(datasite_path)         # check participant of netflix trend
+    peers = network_participants(datasites_path)         # check participant of netflix trend
 
     # Here we do not use public folder for aggregator, but an api_folder accesible to participants only
     shared_folder_path = create_shared_folder(Path(client.datasite_path), client, peers)
@@ -135,8 +32,13 @@ if __name__ == "__main__":
     create_tvseries_vocab(shared_folder_path)
     
     # MLP use case -> FedAvg
-    weights, biases = get_users_mlp_parameters(datasite_path, peers)    # MLP: retrieve the path to weights and bias
+    weights, biases = get_users_mlp_parameters(datasites_path, peers)    # MLP: retrieve the path to weights and bias
     fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
-    
     joblib.dump(fedavg_weights, shared_folder_path / "netflix_mlp_fedavg_weights.joblib")
     joblib.dump(fedavg_biases, shared_folder_path / "netflix_mlp_fedavg_biases.joblib")
+
+    # Differential Privacy use case -> Top-5 Most Seen TV Series
+    MIN_PARTICIPANTS = 3
+    if len(peers) > MIN_PARTICIPANTS:  # check the top-5 if at least MIN_PARTICIPANTS available
+        dp_top5_series(datasites_path, peers, min_participants=MIN_PARTICIPANTS)
+        # TODO: update assets -> static index
