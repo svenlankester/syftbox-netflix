@@ -1,10 +1,11 @@
 import unittest
+import os
 from unittest.mock import patch
 import pandas as pd
 import numpy as np
 from pathlib import Path
 import json
-from main import match_title, create_view_counts_vector
+from participant.federated_learning.sequence_data import match_title, create_view_counts_vector
 
 class TestDataProcessingViewCountVectors(unittest.TestCase):
     def test_match_title(self):
@@ -50,14 +51,25 @@ class TestDataProcessingViewCountVectors(unittest.TestCase):
             "Total_Views": [6, 18, 4, 5],
             "First_Seen": ["2012-09-30", "2012-10-21", "2012-09-30", "2013-01-01"],
         })
-        parent_path = Path("/mocked/path")
+        parent_path = Path("test_sandbox")
+
+        datasite_path = 'aggregator_datasite'
+        vocabulary_filename = "tv-series_vocabulary.json"
+        vocabulary_dir = os.path.join(str(parent_path), datasite_path, "api_data", "netflix_data")
+        vocabulary_path = os.path.join(vocabulary_dir, vocabulary_filename)
+
+        # Ensure the parent directory exists
+        os.makedirs(vocabulary_dir, exist_ok=True)
+        # Write the vocabulary to the file
+        with open(vocabulary_path, "w") as file:
+            json.dump(vocabulary, file)
+
 
         # Mock the JSON loading
-        with patch("builtins.open", unittest.mock.mock_open(read_data=json.dumps(vocabulary))):
-            result = create_view_counts_vector(aggregated_data, parent_path)
+        result = create_view_counts_vector(datasite_path, aggregated_data, parent_path)
 
-            expected = np.array([0, 0, 10, 18])  # Top Gear: 6 + 4, South Park: 18
-            np.testing.assert_array_equal(result, expected)
+        expected = np.array([0, 0, 10, 18])  # Top Gear: 6 + 4, South Park: 18
+        np.testing.assert_array_equal(result, expected)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ from pathlib import Path
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from datetime import datetime
-from utils.ml import SequenceData, extract_features, prepare_data, train_model, get_recommendation
+from participant.federated_learning.mlp_model import extract_features, prepare_data, train_model, get_recommendation
+from participant.federated_learning.sequence_data import SequenceData
 
 class TestMLRoutines(unittest.TestCase):
     @classmethod
@@ -187,7 +188,7 @@ class TestMLRoutines(unittest.TestCase):
         self.assertIsInstance(le_show, LabelEncoder)
         self.assertEqual(num_samples, len(self.dataset) - 1)
 
-    @patch("utils.ml.get_current_day_of_week")
+    @patch("participant.federated_learning.mlp_model.get_current_day_of_week")
     def test_get_recommendation(self, mock_get_current_day_of_week):
         """
         Test the get_recommendation function for generating show recommendations.

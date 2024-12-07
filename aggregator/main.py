@@ -10,7 +10,6 @@ from pets.fedavg_mlp import get_users_mlp_parameters, mlp_fedavg
 from pets.dp_top5 import dp_top5_series
 from syftbox.lib import Client
 
-
 API_NAME = os.getenv("API_NAME")
 DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 
