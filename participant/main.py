@@ -5,6 +5,7 @@ import csv
 from typing import Tuple
 from datetime import datetime
 from pathlib import Path
+import subprocess
 from syftbox.lib import Client, SyftPermission
 from participant_utils.checks import should_run
 
@@ -101,20 +102,46 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     datapath = os.path.expanduser(output_dir)
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(csv_name)[0]
+    
     filename = f"{netflix_csv_prefix}_{today_date}.csv"
     file_path = os.path.join(datapath, filename)
+    file_path_static = os.path.join(datapath, netflix_csv_prefix + ".csv")
 
     try:
-        # Check if the file exists
-        if not os.path.exists(file_path):
-            print(f"Data file not found. Downloading to {file_path}...")
-            download_daily_data(datapath, filename)
+        # Try to download the file using Chromedriver
+        try:
+            chromedriver_path = subprocess.check_output(['which', 'chromedriver'], text=True).strip()
+            os.environ['CHROMEDRIVER_PATH'] = chromedriver_path
+            if not os.path.exists(file_path):
+                print(f"Data file not found. Downloading to {file_path}...")
+                download_daily_data(datapath, filename)
+                print(f"Successfully downloaded Netflix data to {file_path}.")
+            static_file = False
+            
+        except subprocess.CalledProcessError:
+            print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
+            print(f"Checking for a locally available static file: {file_path_static}...")
+            
+            # Try to use the static file if downloading failed
+            if os.path.exists(file_path_static):
+                print(f"Using static viewing history (manually downloaded from Netflix): {file_path_static}...")
+                static_file = True
+            else:
+                print((
+                    f">> Neither ChromeDriver is available for download nor the static file exists. "
+                    f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
+                ))
+                sys.exit(1)
 
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
         raise
 
-    latest_data_file = get_latest_file(datapath, csv_name)
+
+    if static_file:
+        latest_data_file = file_path_static
+    else:
+        latest_data_file = get_latest_file(datapath, csv_name)
 
     # Load the CSV into a NumPy array
     print(f"Loading data from {latest_data_file}...")

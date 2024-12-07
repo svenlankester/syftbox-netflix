@@ -1,4 +1,4 @@
-# SyftBox for Netflix Viewing History 🍿
+# SyftBox App for Netflix Viewing History 🍿
 
 This project is a proof of concept utilizing [SyftBox](https://syftbox-documentation.openmined.org/) from [OpenMined](https://openmined.org/) to process 🔒 private data. The use case focuses on analyzing the [Netflix viewing history](https://help.netflix.com/en/node/101917) provided by users. This effort is part of the [#30DaysOfFLCode](https://info.openmined.org/30daysofflcode) initiative.
 
@@ -15,46 +15,56 @@ The primary aim is to apply 🛡️ privacy-enhancing technologies to derive agg
 - **Am I watching too much in comparison with others?**
 - **Watching more due to sickness/injury?** [(source)](https://www.kaggle.com/code/nachoco/netflix-viewing-analysis-with-injury)
 
-## Sketch Preview
-
-Below is the sketch preview for insights generated on 2024-11-28:
-
-![Sketch for 2024-11-28](aggregator/static/sketch-2024-11-28.png)
-
-
 ---
 
-## Requirements
-_Tested on Linux and MacOS._
+## Installation & Requirements
+**_Tested on Linux and macOS._**
 
-0. Install the `chromedriver` to perform a daily retrieval of your Netflix viewing history:
-   ```bash
-   brew install chromedriver  # MacOS
-   ```
-   ```bash
-   sudo apt-get install chromium-driver  # Ubuntu
+### 1. Install ChromeDriver
+To retrieve your Netflix viewing history automatically:
+
+- **For macOS:**
+  ```bash
+  brew install chromedriver
    ```
 
-1. **Start SyftBox:**
+- **For Ubuntu/Linux:**
+   ```bash
+   sudo apt-get install chromium-driver
+   ```
+
+> **Note:** If you prefer, you can skip this step and manually download your Netflix viewing history as a CSV. See [How to download your Netflix viewing history](https://help.netflix.com/en/node/101917). Once downloaded, place the CSV file in the `OUTPUT_DIR` specified in the `.env` file.
+
+### 2. Start SyftBox
+Install and start SyftBox by running this command:
+
    ```bash
    curl -LsSf https://syftbox.openmined.org/install.sh | sh
    ```
-2. **Copy this repository to SyftBox** 
-
-   - Copy this repository to your SyftBox `apis` folder:
+### 3. Copy this repository to SyftBox
+Move this repository into the apis folder of your SyftBox:
+1. Go to your SyftBox `apis` directory:
    ```bash
    cd ~/SyftBox/apis
+   ```
+
+2. Clone this repository:
+   ```bash
    git clone https://github.com/gubertoli/syftbox-netflix.git netflix_trend
    ```
-3. **⚠️ Set Up the Environment** 
+### 4. Set Up the Environment
+Configure this app inside SyftBox.
 
-   - You shall create a `.env` file with your data in the `netflix_trend`. 
+1. Navigate to the `netflix_trend` directory:
    ```bash
    cd netflix_trend
+   ```
+2. Create an environment configuration file:
+   ```bash
    cp .env.example .env
    ```
 
-   - Edit the `.env` with your Netflix personal information.
+3. Open the `.env` file in a text editor and fill in your Netflix account information (_if you want to automate viewing history retrieval_) and the required folders details.
 
 ### Data format (Netflix)
 The data provided by Netflix (Viewing History) is a comma-separated file (CSV), organized by Title and Date:
