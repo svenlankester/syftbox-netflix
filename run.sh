@@ -33,6 +33,8 @@ echo "Installing dependencies..."
 pip install -r requirements.txt --quiet
 echo "Dependencies installed."
 
+pip install -e .
+
 python3 main.py
 
 deactivate
