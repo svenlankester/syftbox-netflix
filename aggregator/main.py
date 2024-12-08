@@ -22,16 +22,16 @@ if __name__ == "__main__":
 
     datasites_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 
-    peers = network_participants(datasites_path)         # check participant of netflix trend
+    peers = network_participants(datasites_path, API_NAME)         # check participant of netflix trend
 
     # Here we do not use public folder for aggregator, but an api_folder accesible to participants only
-    shared_folder_path = create_shared_folder(Path(client.datasite_path), client, peers)
+    shared_folder_path = create_shared_folder(Path(client.datasite_path), API_NAME, client, peers)
     
     # Create a Vocabulary of TV Series
     create_tvseries_vocab(shared_folder_path)
     
     # MLP use case -> FedAvg
-    weights, biases = get_users_mlp_parameters(datasites_path, peers)    # MLP: retrieve the path to weights and bias
+    weights, biases = get_users_mlp_parameters(datasites_path, API_NAME, peers)    # MLP: retrieve the path to weights and bias
     fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
     joblib.dump(fedavg_weights, shared_folder_path / "netflix_mlp_fedavg_weights.joblib")
     joblib.dump(fedavg_biases, shared_folder_path / "netflix_mlp_fedavg_biases.joblib")

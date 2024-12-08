@@ -33,7 +33,7 @@ class SequenceData:
     def process_dataset(self):
         """
         This method get the original data and organizes sequentially by oldest to the newest seen TV Series.
-        Aggregating the number of episodes seen (Total_Views) and the stating date (Fist_Seen).
+        Aggregating the number of episodes seen (Total_Views) and the stating date (First_Seen).
         """
         df = pd.DataFrame(self.dataset, columns=["Title", "Date"])
         df = self.extract_features(df).copy()

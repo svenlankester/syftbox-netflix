@@ -2,9 +2,7 @@ import os
 from pathlib import Path
 from syftbox.lib import Client, SyftPermission
 
-API_NAME = os.getenv("API_NAME")
-
-def network_participants(datasite_path: Path) -> list[str]:
+def network_participants(datasite_path: Path, api_name:str) -> list[str]:
     """
     Network Participants Discovery:
     Retrieves a list of user directories (participants) in a given datasite path. 
@@ -18,18 +16,18 @@ def network_participants(datasite_path: Path) -> list[str]:
     users = []
 
     for entry in entries:
-        if Path(datasite_path / entry / "api_data" / API_NAME).is_dir():
+        if Path(datasite_path / entry / "api_data" / api_name).is_dir():
             users.append(entry)
 
     return users
 
 
-def create_shared_folder(path: Path, client: Client, participants: list) -> Path:
+def create_shared_folder(path: Path, api_name:str, client: Client, participants: list) -> Path:
     """
     Create a shared folder accessible to participants only with the computations
     """
 
-    shared_datapath: Path = path / "api_data" / API_NAME
+    shared_datapath: Path = path / "api_data" / api_name
     os.makedirs(shared_datapath, exist_ok=True)
 
     # Set the default permissions

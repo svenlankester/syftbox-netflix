@@ -1,6 +1,6 @@
 import numpy as np
 from datetime import datetime
-from collections import Counter
+from collections import Counter, defaultdict
 
 ## ==================================================================================================
 ## Data Processing (1) - Reduction
@@ -32,6 +32,45 @@ def orchestrate_reduction(history: np.ndarray) -> np.ndarray:
 ## ==================================================================================================
 ## Data Processing (2) - Data Enrichment (shows)
 ## ==================================================================================================
+
+def create_title_genre_dict(imdb_data, title_col=1, genre_col=7):
+    """
+    Create a dictionary mapping titles to genres from IMDb data.
+    Currently not in use as found genres within the Netflix data.
+
+    Args:
+        imdb_data (np.ndarray): The IMDb data array.
+        title_col (int): The column index for titles in the IMDb data.
+        genre_col (int): The column index for genres in the IMDb data.
+
+    Returns:
+        dict: A dictionary mapping titles to genres.
+    """
+    # Create a dictionary with title as the key and genre as the value
+    title_genre_dict = {
+        str(row[title_col]): str(row[genre_col]) for row in imdb_data if len(row) > max(title_col, genre_col)
+    }
+    return title_genre_dict
+
+def add_column_from_dict(data, lookup_dict, key_col, new_col_name="new_column"):
+    """
+    Add a new column to the data based on a lookup dictionary.
+
+    Args:
+        data (np.ndarray): The input data array.
+        lookup_dict (dict): A dictionary where keys correspond to data[key_col] values
+                            and values are the new column entries to add.
+        key_col (int): The column index used to match keys in the lookup dictionary.
+        new_col_name (str): The name of the new column (optional, for logging/debugging).
+
+    Returns:
+        np.ndarray: The augmented data array with the new column added.
+    """
+    # Add the new column based on the lookup dictionary
+    new_column = [lookup_dict.get(row[key_col], "Unknown") for row in data]
+    augmented_data = np.column_stack((data, new_column))
+    print(f"Added column '{new_col_name}' to the data.")
+    return augmented_data
 
 def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
     """
@@ -70,6 +109,73 @@ def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
 
     return joined_data
 
+
+def calculate_show_ratings(viewing_data):
+    """
+    Calculate ratings for shows based on viewing patterns.
+
+    Args:
+        viewing_data (np.ndarray): An array with columns [Show name, Week number, View times].
+
+    Returns:
+        dict: A dictionary with show names as keys and ratings as values.
+
+        - If the user has watched >3 episodes of a show in the same week, for multiple weeks, then the show is rated 5 stars.
+        - If the user has watched >0 episode of a show in the same week, for three consecutive weeks, then the show is rated 5 stars.
+        - If the user has watched >4 episodes of a show in the same week, then the show is rated 4 stars.
+        - If the user has watched >4 episodes of a show in different weeks, for multiple weeks, then the show is rated 3 stars.
+        - If the user has watched >3 episodes in total, then the show is rated 2 stars.
+        Else the show is rated 1 star
+
+    """
+    if viewing_data.size == 0:
+        return {}
+
+    # Create a new array with the desired data types
+    new_viewing_data = np.empty(viewing_data.shape, dtype=object)
+    new_viewing_data[:, 0] = viewing_data[:, 0]  # Show name remains as string
+    new_viewing_data[:, 1] = viewing_data[:, 1].astype(int)  # Week number as int
+    new_viewing_data[:, 2] = viewing_data[:, 2].astype(int)  # View times as int
+
+    # Group data by show name
+    show_groups = defaultdict(list)
+    for show, week, views in new_viewing_data:
+        show_groups[show].append((week, views))
+
+    ratings = {}
+
+    for show, weekly_views in show_groups.items():
+        weekly_views = sorted(weekly_views)  # Sort by week number
+        total_views = sum(views for _, views in weekly_views)
+
+        high_weeks = sum(1 for _, views in weekly_views if views > 3)
+        weeks_with_more_than_one_episode = [week for week, views in weekly_views if views > 1]
+        weeks_with_views = [views for _, views in weekly_views if views > 0]
+
+        if high_weeks > 1:
+            # Rule 1: If watched >3 episodes in the same week, for multiple weeks -> 5 stars
+            ratings[show] = 5
+        elif len(weeks_with_views) >= 3 and all(
+            weeks_with_more_than_one_episode[i] + 1 == weeks_with_more_than_one_episode[i + 1] == weeks_with_more_than_one_episode[i + 2] - 1
+            for i in range(len(weeks_with_more_than_one_episode) - 2)
+        ):
+            # Rule 2: If watched >1 episode in the same week, for 3 consecutive weeks -> 5 stars
+            ratings[show] = 5
+        elif any(views > 4 for _, views in weekly_views):
+            # Rule 3: If watched >4 episodes in the same week -> 4 stars
+            ratings[show] = 4
+        elif len(weeks_with_views) > 1 and sum(weeks_with_views) > 4:
+            # Rule 4: If watched >4 episodes across different weeks, for multiple weeks -> 3 stars
+            ratings[show] = 3
+        elif total_views > 3:
+            # Rule 5: If watched >3 episodes in total -> 2 stars
+            ratings[show] = 2
+        else:
+            # Rule 6: Else -> 1 star
+            ratings[show] = 1
+
+    return ratings
+
 ## ==================================================================================================
 ## Data Processing (3) - Viewing History Aggregation and Storage
 ## ==================================================================================================
@@ -88,31 +194,13 @@ def aggregate_title_week_counts(reduced_data: np.ndarray) -> np.ndarray:
     aggregated_data = np.array([[title, week, str(count)] for (title, week), count in counts.items()])
     return aggregated_data
 
-def aggregate_and_store_history(reduced_history, viewing_history, private_folder, restricted_public_folder):
+def save_npy_data(folder, filename, data):
     """
-    Process and save the reduced, aggregated, and full viewing history.
+    Save data to the specified path in .npy format.
 
     Args:
-        reduced_history: Reduced viewing history data.
-        viewing_history: Full viewing history data.
-        private_folder: Path to the private folder.
-        restricted_public_folder: Path to the restricted public folder.
+        data: The data to save.
+        save_path: Path to save the data.
     """
-    # Aggregate the reduced information
-    aggregated_history = aggregate_title_week_counts(reduced_history)
-
-    # Define paths
-    public_reduced_file = restricted_public_folder / "netflix_reduced.npy"
-    public_aggregated_file = restricted_public_folder / "netflix_aggregated.npy"
-    private_full_file = private_folder / "netflix_full.npy"
-
-    # Save reduced viewing history
-    np.save(str(public_reduced_file), reduced_history)
-
-    # Save aggregated viewing history
-    np.save(str(public_aggregated_file), aggregated_history)
-
-    # Save full viewing history
-    np.save(str(private_full_file), viewing_history)
-
-    return aggregated_history
+    np.save(str(folder / filename), data)
+    print(f"Data saved to {str(folder / filename)}")
