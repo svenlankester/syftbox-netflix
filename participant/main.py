@@ -137,7 +137,6 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
         print(f"Error retrieving Netflix data: {e}")
         raise
 
-
     if static_file:
         latest_data_file = file_path_static
     else:
@@ -148,26 +147,32 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     return latest_data_file, load_csv_to_numpy(latest_data_file)
 
 def run_federated_analytics(restricted_public_folder, private_folder, viewing_history):
-    # Reduce the original information
+    # Reduce and aggregate the original information
     reduced_history = fa.orchestrate_reduction(viewing_history)
+    aggregated_history = fa.aggregate_title_week_counts(reduced_history)
+
+    # For Debugging: Filter rows where index 1 is "Avatar"
+    # filtered_rows = aggregated_history[aggregated_history[:, 0] == 'Avatar']
+
+    # Infer ratings as per viewing patterns
+    ratings_dict = fa.calculate_show_ratings(aggregated_history)
 
     netflix_file_path = 'data/netflix_titles.csv'
     netflix_show_data = load_csv_to_numpy(netflix_file_path)
 
+    title_genre_dict = fa.create_title_genre_dict(netflix_show_data, title_col=2, genre_col=10) # tmp dict - may be useful for aggregates.
+    user_information = fa.add_column_from_dict(aggregated_history, ratings_dict, key_col=0, new_col_name='rating')
+
     # This is an enhanced data compared with the retrieved viewing history from Netflix website
     # Useful for more complex analytics
-    my_shows_data = fa.join_viewing_history_with_netflix(reduced_history, netflix_show_data)
+    my_shows_data = fa.join_viewing_history_with_netflix(user_information, netflix_show_data)
 
-    # Process and save watch history
-    fa.aggregate_and_store_history(
-        reduced_history, 
-        viewing_history, 
-        private_folder, 
-        restricted_public_folder
-    )
-
-    private_shows_file: Path = private_folder / "my_shows_data_full.npy"
-    np.save(str(private_shows_file), my_shows_data)
+    # Save data
+    fa.save_npy_data(restricted_public_folder, "netflix_reduced.npy", reduced_history)
+    fa.save_npy_data(restricted_public_folder, "netflix_aggregated.npy", aggregated_history)
+    fa.save_npy_data(private_folder, "netflix_full.npy", viewing_history)
+    fa.save_npy_data(private_folder, "my_shows_data_full.npy", my_shows_data)
+    fa.save_npy_data(private_folder, "my_shows_data_ratings.npy", ratings_dict)
 
 def run_federated_learning(aggregator_path, restricted_public_folder, private_folder, viewing_history, latest_data_file, datasite_parent_path):
     netflix_file_path = 'data/netflix_titles.csv'

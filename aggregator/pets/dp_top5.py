@@ -37,9 +37,6 @@ def calculate_top5(files: list[Path], destination_folder: Path, vocab: Path):
     with open(destination_folder / "top5_series.json", 'w') as f:
         json.dump({"names": top5_names, "counts": top5_values.tolist()}, f, indent=4)
 
-    
-  
-
 def dp_top5_series(datasites_path: Path, peers: list[str], min_participants):
     """
     Retrieves the path of all available participants with DP vectors of TV series seens episodes.

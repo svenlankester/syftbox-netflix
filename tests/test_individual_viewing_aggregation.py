@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from participant.federated_analytics.data_processing import aggregate_title_week_counts, aggregate_and_store_history
+from participant.federated_analytics.data_processing import aggregate_title_week_counts
 
 class TesIndividiualViewingAggregation(unittest.TestCase):
     def test_aggregate_title_week_counts(self):

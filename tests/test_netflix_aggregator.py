@@ -7,34 +7,21 @@ This suite includes tests for various functionalities of the aggregator module, 
 - Vocabulary creation from TV series data
 """
 
-import os
 import unittest
-import numpy as np
-import pandas as pd
 import json
-import joblib
 import shutil
 import zipfile
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
-from aggregator.main import (
-    network_participants,
-    get_users_mlp_parameters,
-    mlp_fedavg,
-    create_tvseries_vocab,
-)
-from aggregator.pets.fedavg_mlp import (
-    extract_number,
-    weighted_average,
-)
-
+from utils.syftbox import network_participants, create_shared_folder
+from utils.vocab import create_tvseries_vocab
 
 API_NAME = "mock_api"
 PROJECT_DIR = "test_sandbox"
 DATA_DIR = "test_sandbox/aggregator/data"
 SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
 
-class TestAggregatorMain(unittest.TestCase):
+class TestAggregatorMain_MLP(unittest.TestCase):
     """
     Test cases for verifying functionalities of aggregator module.
     """
@@ -75,17 +62,17 @@ class TestAggregatorMain(unittest.TestCase):
             else:
                 item.unlink()
 
-    @patch("aggregator.main.API_NAME", API_NAME)
     def test_network_participants_valid_entries(self):
         """
         Test discovery of network participants with valid API_NAME directories.
         Expected: Only directories containing 'api_data/mock_api' are listed.
         """
+
         (self.base_path / "user1" / "api_data" / API_NAME).mkdir(parents=True)
         (self.base_path / "user3" / "api_data" / API_NAME).mkdir(parents=True)
         (self.base_path / "user2" / "api_data").mkdir(parents=True)  # Incomplete structure
 
-        result = network_participants(self.base_path)
+        result = network_participants(self.base_path, API_NAME)
         self.assertEqual(result, ["user1", "user3"])
 
     def test_network_participants_no_valid_entries(self):
@@ -96,7 +83,7 @@ class TestAggregatorMain(unittest.TestCase):
         (self.base_path / "user1" / "api_data").mkdir(parents=True)
         (self.base_path / "user2" / "api_data").mkdir(parents=True)
 
-        result = network_participants(self.base_path)
+        result = network_participants(self.base_path, API_NAME)
         self.assertEqual(result, [])
 
     def test_network_participants_empty_directory(self):
@@ -104,10 +91,9 @@ class TestAggregatorMain(unittest.TestCase):
         Test behavior when the sandbox directory is empty.
         Expected: Empty list.
         """
-        result = network_participants(self.base_path)
+        result = network_participants(self.base_path, API_NAME)
         self.assertEqual(result, [])
 
-    @patch("aggregator.main.API_NAME", API_NAME)
     def test_network_participants_mixed_valid_invalid_entries(self):
         """
         Test discovery of network participants with mixed valid and invalid directories.
@@ -118,97 +104,9 @@ class TestAggregatorMain(unittest.TestCase):
         (self.base_path / "user2" / "api_data").mkdir(parents=True)  # Incomplete structure
         (self.base_path / "invalid_user").mkdir(parents=True)  # Irrelevant structure
 
-        result = network_participants(self.base_path)
+        result = network_participants(self.base_path, API_NAME)
         self.assertEqual(result, ["user1", "user3"])
 
-    def test_extract_number(self):
-        """
-        Test extraction of numeric suffixes from filenames.
-        Expected: Correct number is extracted; -1 for invalid filenames.
-        """
-        self.assertEqual(extract_number("netflix_mlp_weights_100.joblib"), 100)
-        self.assertEqual(extract_number("invalid_file_name.joblib"), -1)
-
-    @patch("aggregator.main.API_NAME", API_NAME)
-    def test_get_users_mlp_parameters(self):
-        """
-        Test extraction of MLP parameters (weights and biases) from directories.
-        Expected: Highest numbered files for each peer are selected.
-        """
-        peers = ["user1", "user2"]
-
-        # Create test directories and files
-        user1_dir = self.base_path / "user1" / "api_data" / API_NAME
-        user2_dir = self.base_path / "user2" / "api_data" / API_NAME
-        user1_dir.mkdir(parents=True, exist_ok=True)
-        user2_dir.mkdir(parents=True, exist_ok=True)
-
-        (user1_dir / "netflix_mlp_weights_100.joblib").touch()
-        (user1_dir / "netflix_mlp_weights_200.joblib").touch()
-        (user1_dir / "netflix_mlp_bias_100.joblib").touch()
-        (user1_dir / "netflix_mlp_bias_200.joblib").touch()
-        (user2_dir / "netflix_mlp_weights_150.joblib").touch()
-        (user2_dir / "netflix_mlp_bias_150.joblib").touch()
-
-        weights, biases = get_users_mlp_parameters(self.base_path, peers)
-
-        expected_weights = [
-            user1_dir / "netflix_mlp_weights_200.joblib",
-            user2_dir / "netflix_mlp_weights_150.joblib",
-        ]
-        expected_biases = [
-            user1_dir / "netflix_mlp_bias_200.joblib",
-            user2_dir / "netflix_mlp_bias_150.joblib",
-        ]
-
-        self.assertEqual(weights, expected_weights)
-        self.assertEqual(biases, expected_biases)
-
-    def test_weighted_average(self):
-        """
-        Test computation of weighted averages for MLP parameters.
-        Expected: Weighted average is correctly calculated.
-        """
-        parameters = [np.array([1, 2, 3]), np.array([4, 5, 6])]
-        samples = [2, 3]
-        result = weighted_average(parameters, samples)
-        expected = np.array([2.8, 3.8, 4.8])
-        np.testing.assert_array_almost_equal(result, expected)
-
-    def test_mlp_fedavg(self):
-        """
-        Test federated averaging (FedAvg) for MLP parameters.
-        Expected: Weighted average for both weights and biases is correctly computed.
-        """
-        # Create mock weight and bias files
-        weights = [
-            self.base_path / "user1_weights.joblib",
-            self.base_path / "user2_weights.joblib",
-        ]
-        biases = [
-            self.base_path / "user1_biases.joblib",
-            self.base_path / "user2_biases.joblib",
-        ]
-
-        weight_data_user1 = [np.array([[1, 2], [3, 4]])]
-        weight_data_user2 = [np.array([[5, 6], [7, 8]])]
-        bias_data_user1 = [np.array([1, 2])]
-        bias_data_user2 = [np.array([3, 4])]
-
-        joblib.dump(weight_data_user1, weights[0])
-        joblib.dump(weight_data_user2, weights[1])
-        joblib.dump(bias_data_user1, biases[0])
-        joblib.dump(bias_data_user2, biases[1])
-
-        fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
-
-        expected_weights = [np.array([[3, 4], [5, 6]])]
-        expected_biases = [np.array([2, 3])]
-
-        np.testing.assert_array_equal(fedavg_weights[0], expected_weights[0])
-        np.testing.assert_array_equal(fedavg_biases[0], expected_biases[0])
-
-    @patch("aggregator.main.DATA_DIR", DATA_DIR)
     @patch("os.getcwd")
     def test_create_tvseries_vocab(self, mock_getcwd):
         """

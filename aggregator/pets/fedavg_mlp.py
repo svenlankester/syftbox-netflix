@@ -4,10 +4,8 @@ import numpy as np
 import os
 from pathlib import Path
 
-API_NAME = os.getenv("API_NAME")
-
 def get_users_mlp_parameters(
-        datasites_path: Path, peers: list[str]
+        datasites_path: Path, api_name:str, peers: list[str]
 ) -> tuple[list, list]:
     """
     This method retrieve the parameters from the local trained MLP. Those files have the names:
@@ -21,7 +19,7 @@ def get_users_mlp_parameters(
     biases = []
 
     for peer in peers:
-        dir = datasites_path / peer / "api_data" / API_NAME
+        dir = datasites_path / peer / "api_data" / api_name
 
         weight = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and "mlp_weights" in f]
         bias = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f)) and "mlp_bias" in f]
@@ -32,7 +30,6 @@ def get_users_mlp_parameters(
         biases.append(dir / bias)
 
     return weights, biases
-
 
 def extract_number(file_name):
     match = re.search(r'_(\d+)\.joblib$', file_name)
