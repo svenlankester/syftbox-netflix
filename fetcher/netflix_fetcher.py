@@ -50,6 +50,9 @@ class NetflixFetcher:
 
     def login(self):
         """Log in to Netflix."""
+        if self.email == "<your-netflix-email@provider.com>" or self.profile == "<profile-name>" or self.password == "<your-password>":
+            raise Exception("[!] Error: Need to setup Netflix Credential! Edit .env file.")
+
         print(f"🍿 Downloading Netflix Activity for: {self.email}, Profile {self.profile}")
         self.driver.get("https://www.netflix.com/login")
         email_input = self.driver.find_element(By.NAME, "userLoginId")

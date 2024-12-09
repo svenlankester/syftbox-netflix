@@ -123,6 +123,9 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
             print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
             print(f"Checking for a locally available static file: {file_path_static}...")
             
+        except Exception as e:
+            print(f"{e}")
+
             # Try to use the static file if downloading failed
             if os.path.exists(file_path_static):
                 print(f"Using static viewing history (manually downloaded from Netflix): {file_path_static}...")
