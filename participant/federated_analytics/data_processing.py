@@ -33,24 +33,23 @@ def orchestrate_reduction(history: np.ndarray) -> np.ndarray:
 ## Data Processing (2) - Data Enrichment (shows)
 ## ==================================================================================================
 
-def create_title_genre_dict(imdb_data, title_col=1, genre_col=7):
+def create_title_field_dict(imdb_data, title_col=1, field_col=7):
     """
-    Create a dictionary mapping titles to genres from IMDb data.
-    Currently not in use as found genres within the Netflix data.
+    Create a dictionary mapping titles to a field from IMDb data.
 
     Args:
         imdb_data (np.ndarray): The IMDb data array.
         title_col (int): The column index for titles in the IMDb data.
-        genre_col (int): The column index for genres in the IMDb data.
+        field_col (int): The column index for desired field in the IMDb data.
 
     Returns:
-        dict: A dictionary mapping titles to genres.
+        dict: A dictionary mapping titles to field.
     """
     # Create a dictionary with title as the key and genre as the value
-    title_genre_dict = {
-        str(row[title_col]): str(row[genre_col]) for row in imdb_data if len(row) > max(title_col, genre_col)
+    title_field_dict = {
+        str(row[title_col]): str(row[field_col]) for row in imdb_data if len(row) > max(title_col, field_col)
     }
-    return title_genre_dict
+    return title_field_dict
 
 def add_column_from_dict(data, lookup_dict, key_col, new_col_name="new_column"):
     """
