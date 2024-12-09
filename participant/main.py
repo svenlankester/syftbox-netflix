@@ -136,18 +136,16 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
                     f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
                 ))
             
-            print(f">> Copying dummy file (data/dummy.csv) to {file_path_static}.")
-            try:
-                with open('data/dummy.csv', 'rb') as src_file:
-                    with open(file_path_static, 'wb') as dest_file:
-                        dest_file.write(src_file.read())
-                print(f">> Copied dummy file (data/dummy.csv) to {file_path_static}. For test purpose only!")
-                static_file = True
-            except Exception as e: 
-                print(f"[!] Error copying dummy file (data/dummy.csv) to {file_path_static}: {e}")
-                sys.exit(1)
-            
-            
+                print(f">> Copying dummy file (data/dummy.csv) to {file_path_static}.")
+                try:
+                    with open('data/dummy.csv', 'rb') as src_file:
+                        with open(file_path_static, 'wb') as dest_file:
+                            dest_file.write(src_file.read())
+                    print(f">> Copied dummy file (data/dummy.csv) to {file_path_static}. For test purpose only!")
+                    static_file = True
+                except Exception as e: 
+                    print(f"[!] Error copying dummy file (data/dummy.csv) to {file_path_static}: {e}")
+                    sys.exit(1)
 
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
