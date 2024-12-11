@@ -100,9 +100,13 @@ def join_viewing_history_with_netflix(reduced_history, netflix_show_data):
             netflix_row = netflix_titles_dict[title]
             # Combine viewing history row and Netflix data row
             joined_rows.append(np.concatenate((row, netflix_row)))
-
+    
     joined_data = np.array(joined_rows)
-    my_found_titles = set([str(title) for title in joined_data[:, 0]])
+    
+    try:
+        my_found_titles = set([str(title) for title in joined_data[:, 0]])
+    except IndexError:  # Handle cases like (0,) or invalid dimensions
+        my_found_titles = set()
 
     print(f"Found Titles: {len(my_found_titles)}")
     print(f"Not Found Titles: {len(my_titles) - len(my_found_titles)}")

@@ -202,7 +202,7 @@ def run_federated_learning(aggregator_path, restricted_public_folder, private_fo
     # Columns: series (TV series title), Total_Views (quantity), First_Seen (datetime)
     # - loaded with the original NetflixViewingHistory.csv
     sequence_recommender = SequenceData(viewing_history)
-    
+        
     view_counts_vector = create_view_counts_vector(aggregator_path, sequence_recommender.aggregated_data, datasite_parent_path)
     private_tvseries_views_file: Path = private_folder / "tvseries_views_sparse_vector.npy"
     np.save(str(private_tvseries_views_file), view_counts_vector)

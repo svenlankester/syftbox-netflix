@@ -26,8 +26,11 @@ def get_users_mlp_parameters(
         weight = max(weight, key=extract_number, default=None)  # get the greater 
         bias = max(bias, key=extract_number, default=None)      # get the greater
 
-        weights.append(dir / weight)
-        biases.append(dir / bias)
+        try:
+            weights.append(dir / weight)
+            biases.append(dir / bias)
+        except:
+            print("There are no participants weights and biases available.")
 
     return weights, biases
 
