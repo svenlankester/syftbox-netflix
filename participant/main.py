@@ -100,7 +100,8 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
         np.ndarray: The latest Netflix viewing history as a structured array.
     """
     # Construct paths and file names
-    datapath = os.path.expanduser(output_dir)
+    # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
+    datapath = output_dir
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(csv_name)[0]
     
