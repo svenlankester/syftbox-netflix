@@ -66,13 +66,9 @@ The data provided by Netflix (Viewing History) is a comma-separated file (CSV), 
 
    ```
    Title,Date
-   "The Blacklist: Season 1: Wujing (No. 84)","21/11/2024"
-   "Buy Now: The Shopping Conspiracy","20/11/2024"
-   "Jake Paul vs. Mike Tyson","16/11/2024"
-   "Murder Mindfully: Breathing","15/11/2024"
+   "Show Name: Season X: Episode Name","DD/MM/YYYY"
    ...
    ```
-
 ---
 
 ## 📁 Generated Files
