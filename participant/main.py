@@ -108,6 +108,7 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     file_path = os.path.join(datapath, filename)
     file_path_static = os.path.join(datapath, netflix_csv_prefix + ".csv")
 
+    static_file = None
     try:
         # Try to download the file using Chromedriver
         try:
@@ -122,6 +123,7 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
         except subprocess.CalledProcessError:
             print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
             print(f"Checking for a locally available static file: {file_path_static}...")
+            static_file = os.path.exists(file_path_static)
             
         except Exception as e:
             print(f"{e}")
@@ -150,6 +152,10 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
         raise
+
+    if static_file is None:
+        print("[!] Critical error: static_file is undefined!")
+        sys.exit(1)
 
     if static_file:
         latest_data_file = file_path_static
