@@ -234,8 +234,12 @@ def main():
         latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
     else:
         print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
-        latest_data_file = dataset_yaml 
-        viewing_history = load_csv_to_numpy(dataset_yaml)
+        latest_data_file = dataset_yaml
+        try: 
+            viewing_history = load_csv_to_numpy(dataset_yaml)
+        except Exception as e:
+            print(f"[Error] to load retrieved path for NetflixViewingHistory.csv from datasets.yaml \n{e}")
+            sys.exit(1)
 
     # Run private processes and write to public/private/restricted directories
     run_federated_analytics(restricted_public_folder, private_folder, viewing_history)

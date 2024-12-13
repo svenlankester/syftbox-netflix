@@ -1,5 +1,6 @@
 import os
 import yaml
+from pathlib import Path
 from fetcher.netflix_fetcher import NetflixFetcher
 from datetime import datetime
 
@@ -7,7 +8,7 @@ from datetime import datetime
 ## ==================================================================================================
 ## Netflix Loader functions
 ## ==================================================================================================
-def participants_datasets(datasite_path: Path, dataset_name = "Netflix Data", dataset_format = "CSV") -> list[str]:
+def participants_datasets(datasite_path: Path, dataset_name = "Netflix Data", dataset_format = "CSV"):
     """
     Check for "Netflix Data" from datasites/<user>/public/datasets.yaml
     """
