@@ -1,6 +1,30 @@
 import os
+import yaml
 from pathlib import Path
 from syftbox.lib import Client, SyftPermission
+
+def participants_datasets(datasites_path: Path, dataset_name = "Netflix Data", dataset_format = "CSV") -> list[str]:
+    """
+    Check for "Netflix Data" from datasites/<user>/public/datasets.yaml
+    """
+    entries = sorted(os.listdir(datasites_path))
+    users = []
+
+    for entry in entries:
+        datasets_yaml = Path(datasites_path / entry / "public" / "datasets.yaml")
+        if datasets_yaml.is_file():
+            with open(datasets_yaml, "r") as file:
+                data = yaml.safe_load(file)
+
+                for dataset in data.get("datasets", []):
+                    if (
+                        dataset.get("name") == dataset_name and
+                        dataset.get("format") == dataset_format and
+                        "path" in dataset
+                    ):
+                        users.append(entry)
+
+    return users
 
 def network_participants(datasite_path: Path, api_name:str) -> list[str]:
     """
