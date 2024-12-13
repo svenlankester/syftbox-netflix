@@ -10,7 +10,7 @@ from syftbox.lib import Client, SyftPermission
 from participant_utils.checks import should_run
 
 # Package functions
-from loaders.netflix_loader import download_daily_data, get_latest_file
+from loaders.netflix_loader import download_daily_data, get_latest_file, participants_datasets
 import federated_analytics.data_processing as fa
 import federated_learning.mlp_model as mlp
 from federated_learning.sequence_data import SequenceData
@@ -226,8 +226,16 @@ def main():
     # Set up environment
     restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE)
 
-    # Fetch and load Netflix data
-    latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
+    # Try to retrieve user data from datasets.yaml
+    dataset_yaml = participants_datasets(client.datasite_path, dataset_name = "Netflix Data", dataset_format = "CSV")
+    
+    if (dataset_yaml is None):
+        # if not available on datasets.yaml, Fetch and load Netflix data 
+        latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
+    else:
+        print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
+        latest_data_file = dataset_yaml 
+        viewing_history = load_csv_to_numpy(dataset_yaml)
 
     # Run private processes and write to public/private/restricted directories
     run_federated_analytics(restricted_public_folder, private_folder, viewing_history)

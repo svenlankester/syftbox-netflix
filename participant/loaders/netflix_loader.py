@@ -1,6 +1,30 @@
 import os
+import yaml
 from fetcher.netflix_fetcher import NetflixFetcher
 from datetime import datetime
+
+
+## ==================================================================================================
+## Netflix Loader functions
+## ==================================================================================================
+def participants_datasets(datasite_path: Path, dataset_name = "Netflix Data", dataset_format = "CSV") -> list[str]:
+    """
+    Check for "Netflix Data" from datasites/<user>/public/datasets.yaml
+    """
+    datasets_yaml = Path(datasite_path / "public" / "datasets.yaml")
+    if datasets_yaml.is_file():
+        with open(datasets_yaml, "r") as file:
+            data = yaml.safe_load(file)
+
+            for dataset in data.get("datasets", []):
+                if (
+                    dataset.get("name") == dataset_name and
+                    dataset.get("format") == dataset_format and
+                    "path" in dataset
+                ):
+                    return dataset.get("path")
+            return None
+
 
 ## ==================================================================================================
 ## Netflix Loader functions
