@@ -41,43 +41,34 @@ Install and start SyftBox by running this command:
    ```bash
    curl -LsSf https://syftbox.openmined.org/install.sh | sh
    ```
-### 3. Copy this repository to SyftBox
-Move this repository into the apis folder of your SyftBox:
-1. Go to your SyftBox `apis` directory:
+### 3. Install app on SyftBox
+From terminal, once SyftBox is running:
    ```bash
-   cd ~/SyftBox/apis
+   syftbox app install gubertoli/syftbox-netflix
    ```
 
-2. Clone this repository:
-   ```bash
-   git clone https://github.com/gubertoli/syftbox-netflix.git netflix_trend
-   ```
 ### 4. Set Up the Environment
 Configure this app inside SyftBox.
 
-1. Navigate to the `netflix_trend` directory:
+1. Navigate to the `syftbox-netflix` directory:
    ```bash
-   cd netflix_trend
+   cd /SyftBox/apis/syftbox-netflix
    ```
 2. Create an environment configuration file:
    ```bash
    cp .env.example .env
    ```
 
-3. Open the `.env` file in a text editor and fill in your Netflix account information (_if you want to automate viewing history retrieval_) and the required folders details.
+3. Open the `.env` file in a text editor and define at least `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. Optionally, fill in your Netflix account information to automate viewing history retrieval.
 
 ### Data format (Netflix)
 The data provided by Netflix (Viewing History) is a comma-separated file (CSV), organized by Title and Date:
 
    ```
    Title,Date
-   "The Blacklist: Season 1: Wujing (No. 84)","21/11/2024"
-   "Buy Now: The Shopping Conspiracy","20/11/2024"
-   "Jake Paul vs. Mike Tyson","16/11/2024"
-   "Murder Mindfully: Breathing","15/11/2024"
+   "Show Name: Season X: Episode Name","DD/MM/YYYY"
    ...
    ```
-
 ---
 
 ## 📁 Generated Files

@@ -5,7 +5,7 @@ import joblib
 from pathlib import Path
 from utils.checks import should_run
 from utils.vocab import create_tvseries_vocab
-from utils.syftbox import network_participants, create_shared_folder
+from utils.syftbox import network_participants, create_shared_folder, participants_datasets
 from pets.fedavg_mlp import get_users_mlp_parameters, mlp_fedavg
 from pets.dp_top5 import dp_top5_series
 from syftbox.lib import Client
@@ -23,6 +23,10 @@ if __name__ == "__main__":
     datasites_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 
     peers = network_participants(datasites_path, API_NAME)         # check participant of netflix trend
+    peers_w_netflix_data = participants_datasets(datasites_path, dataset_name = "Netflix Data", dataset_format = "CSV")  # check for "Netflix Data" from datasites/<user>/public/datasets.yaml
+
+    print(f"[!] Participants with the App Installed: {peers}")
+    print(f"[!] Participants with Netflix Data but not with the App Installed: {[peer for peer in peers_w_netflix_data if peer not in peers]}")
 
     # Here we do not use public folder for aggregator, but an api_folder accesible to participants only
     shared_folder_path = create_shared_folder(Path(client.datasite_path), API_NAME, client, peers)

@@ -21,15 +21,22 @@ def apply_ldp_to_sparse_vector(vector, epsilon, lower_bound=0, upper_bound=None)
     if upper_bound is None:
         upper_bound = np.max(vector)  # Replace with a domain-specific or heuristic-based value
 
+    non_zero_indexes = np.where(vector > 0)[0]
+    zero_indexes = np.where(vector == 0)[0]
+
+    zeroed_indexes_to_modify = np.random.choice(
+        zero_indexes, size=min(len(non_zero_indexes), len(zero_indexes)), replace=False
+    )
+
     for i, value in enumerate(vector):
-        if value > lower_bound:  # Skip values below the lower bound
+        if value > lower_bound or i in zeroed_indexes_to_modify:    # add noise to some random zeroes
             laplace_mechanism = Laplace(epsilon=epsilon, sensitivity=1)
             noisy_value = laplace_mechanism.randomise(value)
             # Clip to ensure valid range
             noisy_vector[i] = max(lower_bound, min(noisy_value, upper_bound))
 
     # Convert to integers
-    noisy_vector = np.round(noisy_vector)  # Round to nearest integer
+    noisy_vector = np.ceil(noisy_vector)  # Round to up integer
     noisy_vector = np.clip(noisy_vector, lower_bound, upper_bound)  # Clip to valid range
     return noisy_vector.astype(int) 
 
@@ -58,10 +65,9 @@ def debug_ldp_information(
     removed_indexes = set(original_non_zero_indexes) - set(ldp_non_zero_indexes)
 
     # Analyze noise for a sample of non-zero entries
-    sampled_indexes = original_non_zero_indexes[:5]  # Sample up to 5 non-zero indexes for analysis
     noise_analysis = [
         (idx, sparse_data[idx], ldp_vector[idx], ldp_vector[idx] - sparse_data[idx])
-        for idx in sampled_indexes
+        for idx in ldp_non_zero_indexes
     ]
 
     # Print debug information
@@ -79,7 +85,7 @@ def debug_ldp_information(
     print(f"LDP non-zero count: {ldp_non_zero_count}")
     print(f"Added non-zero indexes: {added_indexes}")
     print(f"Removed non-zero indexes: {removed_indexes}")
-    print("\n-- Noise Analysis (Sampled Non-Zero Entries) --")
+    print("\n-- Noise Analysis (Non-Zero Entries) --")
     print("Index | Original Value | LDP Value | Noise")
     for idx, orig_val, ldp_val, noise in noise_analysis:
         print(f"{idx:5d} | {orig_val:14.2f} | {ldp_val:9.2f} | {noise:6.2f}")

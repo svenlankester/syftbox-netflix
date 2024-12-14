@@ -10,7 +10,7 @@ from syftbox.lib import Client, SyftPermission
 from participant_utils.checks import should_run
 
 # Package functions
-from loaders.netflix_loader import download_daily_data, get_latest_file
+from loaders.netflix_loader import download_daily_data, get_latest_file, participants_datasets
 import federated_analytics.data_processing as fa
 import federated_learning.mlp_model as mlp
 from federated_learning.sequence_data import SequenceData
@@ -100,7 +100,8 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
         np.ndarray: The latest Netflix viewing history as a structured array.
     """
     # Construct paths and file names
-    datapath = os.path.expanduser(output_dir)
+    # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
+    datapath = output_dir
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(csv_name)[0]
     
@@ -108,6 +109,7 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     file_path = os.path.join(datapath, filename)
     file_path_static = os.path.join(datapath, netflix_csv_prefix + ".csv")
 
+    static_file = None
     try:
         # Try to download the file using Chromedriver
         try:
@@ -122,7 +124,11 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
         except subprocess.CalledProcessError:
             print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
             print(f"Checking for a locally available static file: {file_path_static}...")
+            static_file = os.path.exists(file_path_static)
             
+        except Exception as e:
+            print(f"{e}")
+
             # Try to use the static file if downloading failed
             if os.path.exists(file_path_static):
                 print(f"Using static viewing history (manually downloaded from Netflix): {file_path_static}...")
@@ -132,11 +138,25 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
                     f">> Neither ChromeDriver is available for download nor the static file exists. "
                     f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
                 ))
-                sys.exit(1)
+            
+                print(f">> Copying dummy file (data/dummy.csv) to {file_path_static}.")
+                try:
+                    with open('data/dummy.csv', 'rb') as src_file:
+                        with open(file_path_static, 'wb') as dest_file:
+                            dest_file.write(src_file.read())
+                    print(f">> Copied dummy file (data/dummy.csv) to {file_path_static}. For test purpose only!")
+                    static_file = True
+                except Exception as e: 
+                    print(f"[!] Error copying dummy file (data/dummy.csv) to {file_path_static}: {e}")
+                    sys.exit(1)
 
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
         raise
+
+    if static_file is None:
+        print("[!] Critical error: static_file is undefined!")
+        sys.exit(1)
 
     if static_file:
         latest_data_file = file_path_static
@@ -196,7 +216,7 @@ def run_federated_learning(aggregator_path, restricted_public_folder, private_fo
     # Columns: series (TV series title), Total_Views (quantity), First_Seen (datetime)
     # - loaded with the original NetflixViewingHistory.csv
     sequence_recommender = SequenceData(viewing_history)
-    
+        
     view_counts_vector = create_view_counts_vector(aggregator_path, sequence_recommender.aggregated_data, datasite_parent_path)
     private_tvseries_views_file: Path = private_folder / "tvseries_views_sparse_vector.npy"
     np.save(str(private_tvseries_views_file), view_counts_vector)
@@ -213,8 +233,20 @@ def main():
     # Set up environment
     restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE)
 
-    # Fetch and load Netflix data
-    latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
+    # Try to retrieve user data from datasets.yaml
+    dataset_yaml = participants_datasets(client.datasite_path, dataset_name = "Netflix Data", dataset_format = "CSV")
+    
+    if (dataset_yaml is None):
+        # if not available on datasets.yaml, Fetch and load Netflix data 
+        latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
+    else:
+        print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
+        latest_data_file = dataset_yaml
+        try: 
+            viewing_history = load_csv_to_numpy(dataset_yaml)
+        except Exception as e:
+            print(f"[Error] to load retrieved path for NetflixViewingHistory.csv from datasets.yaml \n{e}")
+            sys.exit(1)
 
     # Run private processes and write to public/private/restricted directories
     run_federated_analytics(restricted_public_folder, private_folder, viewing_history)
