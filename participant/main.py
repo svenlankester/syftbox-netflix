@@ -181,19 +181,12 @@ def run_federated_analytics(restricted_public_folder, private_folder, viewing_hi
     netflix_file_path = 'data/netflix_titles.csv'
     netflix_show_data = load_csv_to_numpy(netflix_file_path)
 
+    title_genre_dict = fa.create_title_genre_dict(netflix_show_data, title_col=2, genre_col=10) # tmp dict - may be useful for aggregates.
     user_information = fa.add_column_from_dict(aggregated_history, ratings_dict, key_col=0, new_col_name='rating')
 
     # This is an enhanced data compared with the retrieved viewing history from Netflix website
     # Useful for more complex analytics
     my_shows_data = fa.join_viewing_history_with_netflix(user_information, netflix_show_data)
-
-    # imdb_file_path = 'data/imdb_titles.csv'
-    # imdb_show_data = load_csv_to_numpy(imdb_file_path)
-    # title_rating_dict = fa.create_title_field_dict(imdb_show_data, title_col=1, field_col=11)
-    # np.save(str("data/imdb_ratings.npy"), title_rating_dict)
-
-    # For debugging: convert to dataframe
-    # filtered_rows = my_shows_data[my_shows_data[:, 5] == 'Movie']
 
     # Save data
     fa.save_npy_data(restricted_public_folder, "netflix_reduced.npy", reduced_history)
@@ -260,6 +253,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
         sys.exit(1)
-
 
 
