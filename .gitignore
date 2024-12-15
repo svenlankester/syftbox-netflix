@@ -172,8 +172,4 @@ script_timestamps/*
 # TV series webscrapper
 aggregator/netflix_series.py
 
-# Demo
-demo/dp_ratings_results
-demo/vectors
-demo/user_data
-demo/figures
+demo

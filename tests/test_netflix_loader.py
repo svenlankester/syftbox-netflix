@@ -23,7 +23,7 @@ class TestNetflixLoader(unittest.TestCase):
 
         download_daily_data(output_dir, file_name)
 
-        mock_fetcher.assert_called_once_with(output_dir)
+        mock_fetcher.assert_called_once_with(output_dir, None)
         mock_fetcher_instance.run.assert_called_once()
         mock_exists.assert_called_once_with(file_path)
 

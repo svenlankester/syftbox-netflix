@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 
 class NetflixFetcher:
-    def __init__(self, output_dir:str=None):
+    def __init__(self, output_dir:str=None, profile:str=None):
         """Initialize the downloader with environment variables."""
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -27,7 +27,7 @@ class NetflixFetcher:
 
         self.email = os.getenv("NETFLIX_EMAIL")
         self.password = os.getenv("NETFLIX_PASSWORD")
-        self.profile = os.getenv("NETFLIX_PROFILE")
+        self.profile = profile or os.getenv("NETFLIX_PROFILE")
         self.output_dir = output_dir or os.getenv("OUTPUT_DIR")
         self.driver_path = os.getenv("CHROMEDRIVER_PATH")
         self.csv_name = os.getenv("NETFLIX_CSV")

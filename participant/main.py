@@ -44,7 +44,7 @@ def load_csv_to_numpy(file_path: str) -> np.ndarray:
 
     return np.array(cleaned_data)
 
-def setup_environment(client, api_name, aggregator_path):
+def setup_environment(client, api_name, aggregator_path, profile):
     """
     Set up public and private folders for data storage.
 
@@ -55,7 +55,7 @@ def setup_environment(client, api_name, aggregator_path):
         tuple: Paths to restricted public and private folders.
     """
 
-    def create_private_folder(path: Path, client: Client) -> Path:
+    def create_private_folder(path: Path, client: Client, profile:str=None) -> Path:
         """
         Create a private folder within the specified path.
 
@@ -63,6 +63,9 @@ def setup_environment(client, api_name, aggregator_path):
         """
 
         netflix_datapath: Path = path / "private" / "netflix_data"
+        if profile:
+            netflix_datapath: Path = path / "private" / "netflix_data" / profile
+
         os.makedirs(netflix_datapath, exist_ok=True)
 
         # Set the default permissions
@@ -86,9 +89,12 @@ def setup_environment(client, api_name, aggregator_path):
         permissions.read.append(aggregator_path) # set read permission to the aggregator
         permissions.save(path)
 
-    restricted_public_folder = client.api_data(api_name)
+    if profile:
+        restricted_public_folder = client.api_data(api_name) / profile
+    else:
+        restricted_public_folder = client.api_data(api_name)
     create_public_folder(restricted_public_folder, client, aggregator_path)
-    private_folder = create_private_folder(client.datasite_path, client)
+    private_folder = create_private_folder(client.datasite_path, client, profile)
     return restricted_public_folder, private_folder
 
 def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
