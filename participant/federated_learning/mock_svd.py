@@ -1,128 +1,204 @@
 import os
 import json
 import numpy as np
+import shutil
+import diffprivlib.tools as dp
+import matplotlib.pyplot as plt
+import copy
 
 from participant.main import setup_environment
 from syftbox.lib import Client
 
+
+from participant.federated_learning.svd_participant_finetuning import participant_fine_tuning
+
 from dotenv import load_dotenv
 load_dotenv()
-API_NAME = os.getenv("API_NAME")
-AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 
-client = Client.load()
-restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE)
 
-def train_and_update_model():
+def normalize_string(s):
+    """
+    """
+    return s.replace('\u200b', '').lower()
+
+def server_initialization():
     import numpy as np
+    import os
+    import json
 
-    # Step 1: Load vocabulary - Later we will make this available in aggregator datasite
+    # Step 1: Load vocabulary
     with open("aggregator/data/tv-series_vocabulary.json", "r") as f:
         tv_vocab = json.load(f)
 
-    # Example user data
-    my_ratings_path = os.path.join(private_folder, 'my_shows_data_ratings.npy')
-    final_ratings = np.load(my_ratings_path, allow_pickle=True).item()
+    # Step 2: Load and normalize IMDB ratings
+    imdb_ratings_path = os.path.join("data", 'imdb_ratings.npy')
+    imdb_data = np.load(imdb_ratings_path, allow_pickle=True).item()
+    imdb_ratings = {normalize_string(title): float(rating) for title, rating in imdb_data.items() if rating}
 
-    # Map titles to item IDs
-    item_ids = {title: tv_vocab[title] for title in final_ratings if title in tv_vocab}
+    # Step 3: Initialize item factors V
+    k = 10  # Latent dimensionality
+    num_items = max(tv_vocab.values()) + 1  # Ensure V covers all items in the vocabulary
+    np.random.seed(42)  # For reproducibility
 
-    # Step 2: Construct data for training (single user)
-    u = 0  # single user id
-    train_data = [(u, item_ids[t], final_ratings[t]) for t in final_ratings if t in item_ids]
 
-    # Federated Setup: Normally, the server would initialize and distribute item factors
-    k = 10  # latent dimensionality
-    num_items = max(tv_vocab.values()) + 1  # based on largest ID in vocab
-    import numpy as np
+    not_found = 0
+    default_rating = np.mean(list(imdb_ratings.values()))  # Mean IMDB rating [1, 10]
+    k = 10  # Latent dimensionality
+    num_items = max(tv_vocab.values()) + 1  # Total number of items
 
-    V = np.random.normal(scale=0.01, size=(num_items, k))  # item factors
-    U_u = np.random.normal(scale=0.01, size=(k,))          # user factor
+    # Initialize V directly based on IMDB ratings or default rating
+    V = np.zeros((num_items, k))
 
-    alpha = 0.01  # learning rate
-    lambda_reg = 0.1
-    iterations = 10  # small number of iterations for demonstration
+    for title, idx in tv_vocab.items():
+        normalized_title = normalize_string(title)
+        
+        if normalized_title in imdb_ratings:
+            rating = imdb_ratings[normalized_title]
+        else:
+            # rating = np.random.normal(loc=default_rating, scale=0.5)  # Random value close to default_rating
+            rating = np.random.normal(loc=default_rating, scale=0.1, size=k)
 
-    # Step 5: Local Training (Client-Side)
-    for it in range(iterations):
-        for (user_id, item_id, r) in train_data:
-            # Predict
-            pred = U_u.dot(V[item_id])
-            error = r - pred
+            not_found += 1
 
-            # Gradient updates
-            U_u_grad = error * V[item_id] - lambda_reg * U_u
-            V_i_grad = error * U_u - lambda_reg * V[item_id]
+        # Create a base latent representation proportional to the IMDB rating
+        # Higher ratings should lead to stronger initial vectors
+        base_vector = np.full(k, rating)
 
-            U_u += alpha * U_u_grad
-            V[item_id] += alpha * V_i_grad
+        # Add variability across dimensions by adding small random noise around the base rating
+        V[idx] = base_vector + np.random.normal(scale=0.2 * rating, size=k)
 
-    # After training, U_u and V are updated locally.
+    # Normalize each item's vector to have unit norm (ensuring diverse yet consistent scales)
+    V = V / np.linalg.norm(V, axis=1, keepdims=True)
 
-    # Step 6: Send updates to server
-    # In a multi-user scenario, each client would send their gradients or updated parameters.
-    # Here, we have only one user. So we just imagine sending U_u and modified rows of V.
+    print(f"Initialized item factors for {len(V)} shows. {not_found} shows not found in IMDB data.")
 
-    updated_user_factors = U_u
-    updated_item_factors = V
-
-    # Step 7: Server aggregates (trivial since one user)
-    global_U = updated_user_factors
-    global_V = updated_item_factors
-
-    # Persist the updated global model parameters (for now locally)
-
-    # Create folder
+    # Step 4: Save the initialized model
     save_to = "mock_dataset_location/tmp_model_parms"
     os.makedirs(save_to, exist_ok=True)
+    np.save(os.path.join(save_to, "global_V.npy"), V)
 
-    np.save(os.path.join(save_to, "global_U.npy"), global_U)
-    np.save(os.path.join(save_to, "global_V.npy"), global_V)
+    print("Server initialization complete. Item factors (V) are saved.")
 
-    print("The server now has trained global model parameters..")
-    # The server now has updated global model parameters.
+def server_aggregate(updates, weights=None, learning_rate=1.0, epsilon=4.0, clipping_threshold=0.5):
+    """
+    Aggregate updates from participants using a weighted average.
+    Missing updates for specific items are handled gracefully.
+
+    Args:
+        updates (list[dict]): List of delta dictionaries from participants.
+                              Each dictionary maps item_id -> delta vector.
+        weights (list[float]): List of weights for each participant. If None, equal weight is assumed.
+        learning_rate (float): Scaling factor for the aggregated deltas.
+    """
+    import numpy as np
+    import os
+
+    # Step 1: Load current global V
+    global_V_path = os.path.join("mock_dataset_location/tmp_model_parms", "global_V.npy")
+    V = np.load(global_V_path)
+
+    # Step 2: Initialize weights
+    if weights is None:
+        weights = [1.0] * len(updates)  # Equal weight for all participants
+
+    if len(weights) != len(updates):
+        raise ValueError("The number of weights must match the number of updates.")
+
+    # Normalize weights to sum to 1
+    total_weight = sum(weights)
+    normalized_weights = [w / total_weight for w in weights]
+
+    # Step 3: Aggregate updates with clipping and DP noise
+    aggregated_delta = {item_id: np.zeros_like(V[item_id]) for item_id in range(len(V))}
 
 
-########################################
-# Step 1: Local Recommendation Computation
-########################################
+    for i, delta_V in enumerate(updates):
+        weight = normalized_weights[i] * learning_rate
+        for item_id, delta in delta_V.items():
+            # Clip updates
+            if clipping_threshold:
+                norm = np.linalg.norm(delta)
+                if norm > clipping_threshold:
+                    delta = (delta / norm) * clipping_threshold
+            # Weighted aggregation
+            aggregated_delta[item_id] += weight * delta
 
-def local_recommendation(tv_vocab, user_ratings, recalculate_global=False):
+    # Add DP noise to the aggregated updates
+    # if epsilon:
+    #     noise_scale = clipping_threshold / epsilon
+    #     for item_id in aggregated_delta:
+    #         noise = np.random.normal(scale=noise_scale, size=aggregated_delta[item_id].shape)
+    #         aggregated_delta[item_id] += noise
+
+    if epsilon:
+        if clipping_threshold is None:
+            clipping_threshold = np.max([np.linalg.norm(delta) for delta in aggregated_delta.values()])
+        noise_scale = clipping_threshold / epsilon
+        for item_id in delta_V:
+            delta_norm = np.linalg.norm(delta_V[item_id])
+            if delta_norm > 0:  # Avoid division by zero
+                # Normalize, add noise, and rescale
+                aggregated_delta[item_id] /= delta_norm
+                noise = np.random.normal(scale=noise_scale, size=aggregated_delta[item_id].shape)
+                aggregated_delta[item_id] += noise
+                aggregated_delta[item_id] *= delta_norm
+
+    else:
+        # Normal aggregation
+        for i, delta_V in enumerate(updates):
+            weight = normalized_weights[i] * learning_rate
+            for item_id, delta in delta_V.items():
+                V[item_id] += weight * delta  # Apply weighted delta for this participant
+
+    # Step 4: Apply the aggregated updates to the global model
+    for item_id, delta in aggregated_delta.items():
+        V[item_id] += delta
+    
+
+
+    # Step 4: Save the updated global V
+    np.save(global_V_path, V)
+    print("Server aggregation complete. Global item factors (V) updated.")
+
+def local_recommendation(user_id, tv_vocab, user_ratings, exclude_watched=True):
     # Assume we have user_ratings, global_V, global_U, tv_vocab, etc. from previous code
 
     # Load model parameters
-    load_from = "mock_dataset_location/tmp_model_parms"
-    global_U_path = os.path.join(load_from, "global_U.npy")
-    global_V_path = os.path.join(load_from, "global_V.npy")
+    global_path = "mock_dataset_location/tmp_model_parms"
+    local_path = os.path.join("mock_dataset_location/tmp_model_parms", user_id)
+    global_V_path = os.path.join(global_path, "global_V.npy")
+    user_U_path = os.path.join(local_path, f"{user_id}_U.npy")
 
-    # Check if files exits
-    if recalculate_global or (not os.path.exists(global_U_path) or not os.path.exists(global_V_path)):
-        print("Model parameters not found. Training the model...")
-        train_and_update_model()
-
-    global_U = np.load(global_U_path)
+    user_U = np.load(user_U_path)
     global_V = np.load(global_V_path)
 
-
     print("Selecting recommendations based on most recent shows watched...")
-    recent_week = 47
-    recent_items = [title for (title, week, rating) in user_ratings if week == recent_week]
+    recent_week = 12
+    recent_items = [title for (title, week, n_watched, rating) in user_ratings if week == recent_week]
     recent_item_ids = [tv_vocab[title] for title in recent_items if title in tv_vocab]
-    print("For week (of all years)", recent_week, "recently watched n_shows=:", len(recent_items))
+    print("For week (of all years)", recent_week, "watched n_shows=:", len(recent_items))
+
+    alpha = 0.7  # Weight for long-term preferences
+    beta = 0.3   # Weight for recent preferences
 
     if recent_item_ids:
-        U_recent = sum(global_V[item_id] for item_id in recent_item_ids) / len(recent_item_ids)
+        U_global_activity = sum(global_V[item_id] for item_id in recent_item_ids) / len(recent_item_ids)
+        U_recent = alpha * user_U + beta * U_global_activity
     else:
-        U_recent = global_U  # fallback
+        U_recent = user_U  # fallback
 
     all_items = list(tv_vocab.keys())
-    watched_titles = set(t for (t, _, _) in user_ratings)
+    watched_titles = set(normalize_string(t) for (t, _, _, _) in user_ratings)
 
     # Optionally, exclude already watched items
-    # candidate_items = [title for title in all_items if title not in watched_titles]
+    if exclude_watched:
+        candidate_items = [title for title in all_items if normalize_string(title) not in watched_titles]
+    else:
+        # Or consider all items
+        candidate_items = all_items
 
-    # Or consider all items
-    candidate_items = all_items
+
+    # tv_vocab = {normalize_string(title): item_id for title, item_id in tv_vocab.items()}
 
     predictions = []
     for title in candidate_items:
@@ -136,151 +212,286 @@ def local_recommendation(tv_vocab, user_ratings, recalculate_global=False):
     print("Recommended based on most recently watched:")
     for i, (show, score) in enumerate(top_6):
         print(f"\t{i+1} => {show}: {score:.4f}")
+
+
+    # Debug for development...
+    # # Analytics for the shows that are rated by user
+    # print("User's ratings:")
+    # ratings = set([(title, rating) for title, _, _, rating in user_ratings if title in tv_vocab])
+
+    # print("Actual Ratings for Recommended Shows:")
+    # for title,rating in ratings:
+    #     if title in [x[0] for x in top_6]:
+    #         print(f"\t{title}: {rating}")
+    
+    # print("Actual Ratings for recently watched shows:")
+    # for title,rating in ratings:
+    #     if title in recent_items:
+    #         print(f"\t{title}: {rating}")
+
     return top_6
 
-with open("aggregator/data/tv-series_vocabulary.json", "r") as f:
-    tv_vocab = json.load(f)
+def run_process():
 
-# Example user data
-my_activity_path = os.path.join(restricted_public_folder, 'netflix_aggregated.npy')
-my_activity = np.load(my_activity_path, allow_pickle=True) # Title, Week, Rating
+    API_NAME = os.getenv("API_NAME")
+    AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
+    NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES")
 
-my_activity_formatted = np.empty(my_activity.shape, dtype=object)
-my_activity_formatted[:, 0] = my_activity[:, 0]  # Show name remains as string
-my_activity_formatted[:, 1] = my_activity[:, 1].astype(int)  # Week number as int
-my_activity_formatted[:, 2] = my_activity[:, 2].astype(int)  # View times as int
+    client = Client.load()
 
-top_6 = local_recommendation(tv_vocab, user_ratings=my_activity_formatted, recalculate_global=True)
+    restricted_public_folders = {}
+    private_folders = {}
 
-print("Recalculating recommendations to verify consistency...")
-top_6 = local_recommendation(tv_vocab, user_ratings=my_activity_formatted, recalculate_global=False)
+    for profile in NETFLIX_PROFILES.split(","):
+        restricted_public_folders[profile], private_folders[profile] = setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile)
 
-########################################
-# Step 2: User Chooses Something Outside Our Predictions
-########################################
+    ########################################
+    # Step 0: Model Initialisation and Fine-Tuning
+    ########################################
 
-# Let's say the user picks a show not in top_5, e.g., "Pedro Páramo" is re-watched or a new title "100 Humans".
-# For demonstration:
-user_new_choice = top_6[-1][0]
-if user_new_choice not in [t for (t, _) in top_6[:5]]:
-    print(f"\nUser selected '{user_new_choice}' which was not in the top 5 predictions.")
+    # Clear folder
+    fldr_base = "mock_dataset_location/tmp_model_parms"
+    user_ids = ["myshows", "mysister", "mydad", "mymom", "mykid"]
+    user_ids = ["myshows", "mydad", "mymom", "mykid"]
 
-# Let's assume the user watched and implicitly "rated" it.
-# Row to append
-new_rating = 5
-new_row = np.array([user_new_choice, 47, new_rating], dtype=object)
-my_activity_formatted = np.vstack([my_activity_formatted, new_row])
+    for user_id in user_ids:
+        fldr_user = os.path.join(fldr_base, user_id)
+        if os.path.exists(fldr_user):
+            shutil.rmtree(fldr_user)
 
-print("Recalculating recommendations after user interaction to verify consistency...")
-top_6 = local_recommendation(tv_vocab, user_ratings=my_activity_formatted, recalculate_global=False)
+    # Server initialisation
+    server_initialization()
+    backup_global_v = np.load("mock_dataset_location/tmp_model_parms/global_V.npy") # For analytics
 
-# We now have an additional data point. The user updates their model locally.
+    delta_V = {}
+    for user_id in user_ids:
+        # Fine-tuning of the item embeddings with user data
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=10, clipping_threshold=None) #0.36
 
-########################################
-# Step 3: Local Update (Incremental Training)
-########################################
+    ########################################
+    # Step 1: Local Recommendation Computation
+    ########################################
 
-# Load model parameters
-load_from = "mock_dataset_location/tmp_model_parms"
-global_U_path = os.path.join(load_from, "global_U.npy")
-global_V_path = os.path.join(load_from, "global_V.npy")
+    with open("aggregator/data/tv-series_vocabulary.json", "r") as f:
+        tv_vocab = json.load(f)
 
-global_U = np.load(global_U_path)
-global_V = np.load(global_V_path)
+    # Example user data
+    my_activity_path = os.path.join(restricted_public_folders['myshows'], 'netflix_aggregated.npy')
+    my_activity = np.load(my_activity_path, allow_pickle=True) # Title, Week, Rating
 
-# Identify item_id for the newly chosen item
-# If user_new_choice not in tv_vocab, add it dynamically:
-if user_new_choice not in tv_vocab:
-    print(f"Item '{user_new_choice}' not in vocabulary. Adding it now.")
+    my_activity_formatted = np.empty(my_activity.shape, dtype=object)
+    my_activity_formatted[:, 0] = my_activity[:, 0]  # Show name remains as string
+    my_activity_formatted[:, 1] = my_activity[:, 1].astype(int)  # Week number as int
+    my_activity_formatted[:, 2] = my_activity[:, 2].astype(int)  # View times as int
+    my_activity_formatted[:, 3] = my_activity[:, 3].astype(float)  # Ratings as float
 
-    # Find a new item_id for this show
-    new_item_id = max(tv_vocab.values()) + 1
-    tv_vocab[user_new_choice] = new_item_id
+    print("Vanilla Recommendations (IMDB)...")
+    top_6 = local_recommendation('myshows', tv_vocab, user_ratings=my_activity_formatted)
 
-    # Initialize item factors randomly
-    k = global_U.shape[0]  # latent dimension (assuming global_U is [k])
-    new_item_factors = np.random.normal(scale=0.01, size=(k,))
-    # Expand global_V to accommodate this new item
-    # Assuming global_V is shape [num_items, k]
-    # We'll need to append a new row
-    global_V = np.vstack([global_V, new_item_factors[np.newaxis, :]])
-    
-    print(f"Assigned item_id={new_item_id} for new show '{user_new_choice}'")
-else:
-    new_item_id = tv_vocab[user_new_choice]
+    print("Updating Global Model with user deltas...")
+    # Server aggregation
+    # server_aggregate([delta_V['myshows'], delta_V['mysister']])
+    delta_V_list = list(delta_V.values())
+    server_aggregate(delta_V_list, epsilon=10, clipping_threshold=None)
 
-# Now we have new_item_id for the chosen show.
-# Perform a mini step of gradient descent to incorporate the new rating
-alpha = 0.01
-lambda_reg = 0.1
-
-# Current prediction before update
-pred_before = global_U.dot(global_V[new_item_id])
-error = new_rating - pred_before
-
-# Compute gradients
-U_u_grad = error * global_V[new_item_id] - lambda_reg * global_U
-V_i_grad = error * global_U - lambda_reg * global_V[new_item_id]
-
-# Store the old item factors to compute delta
-old_V_item = global_V[new_item_id].copy()
-
-# Update locally
-global_U += alpha * U_u_grad
-global_V[new_item_id] += alpha * V_i_grad
-
-# Compute the delta for the item factor
-delta_V = global_V[new_item_id] - old_V_item
-
-########################################
-# Step 4: Send Updates (Delta) Back to Server
-########################################
-
-# In a real federated scenario, we wouldn't send the raw delta as is,
-# we might send gradient updates or encrypted parameters.
-# For demonstration, let's just print what would be sent.
-print("\nSending updates back to the server:")
-print(f"Item factor delta for item_id {new_item_id} ({user_new_choice}): {delta_V}")
-
-# Server-side pseudo-code to handle updates:
-# In reality, the server would:
-# - Load the currently stored global_V
-# - Apply the delta to the corresponding item_id
-
-# Mock server aggregation:
-save_to = "mock_dataset_location/tmp_model_parms"
-os.makedirs(save_to, exist_ok=True)
-
-# Mock server load:
-server_global_V = np.load(os.path.join(save_to, "global_V.npy"))
-server_global_U = np.load(os.path.join(save_to, "global_U.npy"))
-
-# If we added a new item not previously in server_global_V, we need to align the dimensions.
-# Assume server_global_V shape: [N_items, k]
-# If new_item_id >= server_global_V.shape[0], we must expand server_global_V as well.
-if new_item_id >= server_global_V.shape[0]:
-    # Expand server_global_V to accommodate new_item_id
-    rows_to_add = new_item_id - server_global_V.shape[0] + 1
-    additional_rows = np.random.normal(scale=0.01, size=(rows_to_add, server_global_V.shape[1]))
-    server_global_V = np.vstack([server_global_V, additional_rows])
-
-# Apply delta:
-server_global_V[new_item_id] += delta_V
-
-# Save updated global parameters:
-np.save(os.path.join(save_to, "global_U.npy"), server_global_U)
-np.save(os.path.join(save_to, "global_V.npy"), server_global_V)
-
-print("\nServer: Applied client delta updates to global parameters and re-saved.")
-
-# At this point, the server’s global model now reflects the user’s latest interaction
-# with the newly chosen item, and this item is also integrated into the vocabulary.
-
-### Re-run local recommendation to see if the new item is now recommended
-print("Recalculating recommendations after user interaction and model update to verify consistency...")
-local_recommendation(tv_vocab, user_ratings=my_activity_formatted, recalculate_global=False)
+    print("Federated Recommendations (IMDB)...")
+    top_6 = local_recommendation('myshows', tv_vocab, user_ratings=my_activity_formatted)
 
 
+    # Logs
+    global_V_path = os.path.join("mock_dataset_location/tmp_model_parms", "global_V.npy")
+    global_V = np.load(global_V_path)
+    print("Global V shape:", global_V.shape)
+
+    top_show = top_6[0][0]
+    top_show_id = tv_vocab[top_show]
+    print(f"Top show '{top_show}' has item_id={top_show_id}")
+
+    # # Debug: Check the actual rating for the top show
+    # for user in user_ids:
+    #     user_rating_path = os.path.join(private_folders[user], 'ratings.npy')
+    #     user_rating = np.load(user_rating_path, allow_pickle=True).item()
+    #     print(f"Actual rating for '{top_show}' by {user}: {user_rating.get(top_show, "Not rated")}")
+
+
+    import pandas as pd
+    # Prepare the top 6 show IDs
+    top_shows = [show[0] for show in top_6]
+    ratings_matrix = []
+
+    for user in user_ids:
+        # Path to the user's ratings
+        user_rating_path = os.path.join(private_folders[user], 'ratings.npy')
+        
+        # Load the user's ratings
+        user_rating = np.load(user_rating_path, allow_pickle=True).item()
+        
+        # Collect ratings for the top 6 shows
+        user_ratings = [float(user_rating.get(show_id, np.nan)) for show_id in top_shows]
+        ratings_matrix.append(user_ratings)
+
+    # Add imdb rating
+    imdb_path = os.path.join("data", 'imdb_ratings.npy')
+    imdb_data = np.load(imdb_path, allow_pickle=True).item()
+    imdb_data = {title: float(rating)/2 if rating else np.nan for title, rating in imdb_data.items() if rating}
+
+    imdb_ratings = [imdb_data.get(show, np.nan) for show in top_shows]
+    ratings_matrix.append(imdb_ratings)
+
+    average_ratings = np.nanmean(ratings_matrix, axis=0)
+    ratings_matrix.append(average_ratings)
+
+    # Convert to a DataFrame for better visualization
+    ratings_df = pd.DataFrame(ratings_matrix, index=user_ids + ['imdb', 'average'], columns=[show[0] for show in top_6])
+    print(ratings_df)
+
+
+    # Embeddings before and after fine-tuning
+    print("Top Show V factors before fine-tuning:")
+    print(backup_global_v[top_show_id])
+
+    print("Top Show V factors after fine-tuning:")
+    print(global_V[top_show_id])
+
+    pass
+
+    ########################################
+    # NOTE -> BELOW HERE IS IN DEVELOPMENT!!!
+    ########################################
+
+
+
+
+    ########################################
+    # Step 2: User Chooses Something Outside Our Predictions
+    ########################################
+
+    # Let's say the user picks a show not in top_5, e.g., "Pedro Páramo" is re-watched or a new title "100 Humans".
+    # For demonstration:
+    user_new_choice = top_6[-1][0]
+    if user_new_choice not in [t for (t, _) in top_6[:5]]:
+        print(f"\nUser selected '{user_new_choice}' which was not in the top 5 predictions.")
+
+    # Let's assume the user watched and implicitly "rated" it.
+    # Row to append
+    new_rating = 3.6
+    new_row = np.array([user_new_choice, 47, 1, new_rating], dtype=object)
+    my_activity_formatted = np.vstack([my_activity_formatted, new_row])
+
+    print(f"---->Mock user activity updated with the new show={user_new_choice} and rating={new_rating}.")
+
+    # print("Recalculating recommendations after user interaction to verify consistency...")
+    # top_6 = local_recommendation(user1_id, tv_vocab, user_ratings=my_activity_formatted)
+
+    # We now have an additional data point. The user updates their model locally.
+
+    ########################################
+    # Step 3: Local Update (Incremental Training)
+    ########################################
+
+    # Load model parameters
+    load_from = "mock_dataset_location/tmp_model_parms"
+    local_U_path = os.path.join(load_from, "myshows", "myshows_U.npy")
+    global_V_path = os.path.join(load_from, "global_V.npy")
+
+    local_U = np.load(local_U_path)
+    global_V = np.load(global_V_path)
+
+    # Identify item_id for the newly chosen item
+    # If user_new_choice not in tv_vocab, add it dynamically:
+    if user_new_choice not in tv_vocab:
+        print(f"Item '{user_new_choice}' not in vocabulary. Adding it now.")
+
+        # Find a new item_id for this show
+        new_item_id = max(tv_vocab.values()) + 1
+        tv_vocab[user_new_choice] = new_item_id
+
+        # Initialize item factors randomly
+        k = local_U.shape[0]  # latent dimension (assuming global_U is [k])
+        new_item_factors = np.random.normal(scale=0.01, size=(k,))
+        # Expand global_V to accommodate this new item
+        # Assuming global_V is shape [num_items, k]
+        # We'll need to append a new row
+        global_V = np.vstack([global_V, new_item_factors[np.newaxis, :]])
+        
+        print(f"Assigned item_id={new_item_id} for new show '{user_new_choice}'")
+    else:
+        new_item_id = tv_vocab[user_new_choice]
+
+    # Now we have new_item_id for the chosen show.
+    # Perform a mini step of gradient descent to incorporate the new rating
+    alpha = 0.01
+    lambda_reg = 0.1
+
+    # Current prediction before update
+    pred_before = local_U.dot(global_V[new_item_id])
+    error = new_rating - pred_before
+
+    # Compute gradients
+    U_u_grad = error * global_V[new_item_id] - lambda_reg * local_U
+    V_i_grad = error * local_U - lambda_reg * global_V[new_item_id]
+
+    # Store the old item factors to compute delta
+    old_V_item = global_V[new_item_id].copy()
+
+    # Update locally
+    local_U += alpha * U_u_grad
+    global_V[new_item_id] += alpha * V_i_grad
+
+    # Compute the delta for the item factor
+    delta_V = global_V[new_item_id] - old_V_item
+
+    ########################################
+    # Step 4: Send Updates (Delta) Back to Server
+    ########################################
+
+    # In a real federated scenario, we wouldn't send the raw delta as is,
+    # we might send gradient updates or encrypted parameters.
+    # For demonstration, let's just print what would be sent.
+    print("\nSending updates back to the server:")
+    print(f"Item factor delta for item_id {new_item_id} ({user_new_choice}): {delta_V}")
+
+    # Server-side pseudo-code to handle updates:
+    # In reality, the server would:
+    # - Load the currently stored global_V
+    # - Apply the delta to the corresponding item_id
+
+    # Mock server aggregation:
+    save_to = "mock_dataset_location/tmp_model_parms"
+    os.makedirs(save_to, exist_ok=True)
+
+    # Mock server load:
+    server_global_V = np.load(os.path.join(save_to, "global_V.npy"))
+    server_local_U = np.load(os.path.join(save_to, "myshows", "myshows_U.npy"))
+
+    # If we added a new item not previously in server_global_V, we need to align the dimensions.
+    # Assume server_global_V shape: [N_items, k]
+    # If new_item_id >= server_global_V.shape[0], we must expand server_global_V as well.
+    if new_item_id >= server_global_V.shape[0]:
+        # Expand server_global_V to accommodate new_item_id
+        rows_to_add = new_item_id - server_global_V.shape[0] + 1
+        additional_rows = np.random.normal(scale=0.01, size=(rows_to_add, server_global_V.shape[1]))
+        server_global_V = np.vstack([server_global_V, additional_rows])
+
+    # Apply delta:
+    server_global_V[new_item_id] += delta_V
+
+    # Save updated global parameters:
+    np.save(os.path.join(save_to, "myshows", "myshows_U.npy"), server_local_U)
+    np.save(os.path.join(save_to, "global_V.npy"), server_global_V)
+
+    print("\nServer: Applied client delta updates to global parameters and re-saved.")
+
+    # At this point, the server’s global model now reflects the user’s latest interaction
+    # with the newly chosen item, and this item is also integrated into the vocabulary.
+
+    ### Re-run local recommendation to see if the new item is now recommended
+    print("Recalculating recommendations after user interaction and model update to verify consistency...")
+    local_recommendation("myshows", tv_vocab, user_ratings=my_activity_formatted[:-1])
+
+
+if __name__ == "__main__":
+    run_process()
 
 ########################################
 # Notes:

@@ -44,7 +44,7 @@ def load_csv_to_numpy(file_path: str) -> np.ndarray:
 
     return np.array(cleaned_data)
 
-def setup_environment(client, api_name, aggregator_path):
+def setup_environment(client, api_name, aggregator_path, profile:str=None):
     """
     Set up public and private folders for data storage.
 
@@ -55,7 +55,7 @@ def setup_environment(client, api_name, aggregator_path):
         tuple: Paths to restricted public and private folders.
     """
 
-    def create_private_folder(path: Path, client: Client) -> Path:
+    def create_private_folder(path: Path, client: Client, profile) -> Path:
         """
         Create a private folder within the specified path.
 
@@ -63,6 +63,9 @@ def setup_environment(client, api_name, aggregator_path):
         """
 
         netflix_datapath: Path = path / "private" / "netflix_data"
+        if profile:
+            netflix_datapath: Path = path / "private" / "netflix_data" / profile
+
         os.makedirs(netflix_datapath, exist_ok=True)
 
         # Set the default permissions
@@ -86,9 +89,12 @@ def setup_environment(client, api_name, aggregator_path):
         permissions.read.append(aggregator_path) # set read permission to the aggregator
         permissions.save(path)
 
-    restricted_public_folder = client.api_data(api_name)
+    if profile:
+        restricted_public_folder = client.api_data(api_name) / profile
+    else:
+        restricted_public_folder = client.api_data(api_name)
     create_public_folder(restricted_public_folder, client, aggregator_path)
-    private_folder = create_private_folder(client.datasite_path, client)
+    private_folder = create_private_folder(client.datasite_path, client, profile)
     return restricted_public_folder, private_folder
 
 def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
@@ -181,7 +187,7 @@ def run_federated_analytics(restricted_public_folder, private_folder, viewing_hi
     netflix_file_path = 'data/netflix_titles.csv'
     netflix_show_data = load_csv_to_numpy(netflix_file_path)
 
-    title_genre_dict = fa.create_title_genre_dict(netflix_show_data, title_col=2, genre_col=10) # tmp dict - may be useful for aggregates.
+    title_genre_dict = fa.create_title_field_dict(netflix_show_data, title_col=2, field_col=10) # tmp dict - may be useful for aggregates.
     user_information = fa.add_column_from_dict(aggregated_history, ratings_dict, key_col=0, new_col_name='rating')
 
     # This is an enhanced data compared with the retrieved viewing history from Netflix website
@@ -253,6 +259,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(e)
         sys.exit(1)
-
 
 

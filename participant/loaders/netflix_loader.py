@@ -31,11 +31,11 @@ def participants_datasets(datasite_path: Path, dataset_name = "Netflix Data", da
 ## Netflix Loader functions
 ## ==================================================================================================
 
-def download_daily_data(output_dir:str, file_name:str) -> None:
+def download_daily_data(output_dir:str, file_name:str, profile:str=None) -> None:
     """
     Download Netflix data into today's subfolder.
     """
-    downloader = NetflixFetcher(output_dir)
+    downloader = NetflixFetcher(output_dir, profile)
     downloader.run()
 
     # Validate the file exists after download
