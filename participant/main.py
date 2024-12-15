@@ -44,7 +44,7 @@ def load_csv_to_numpy(file_path: str) -> np.ndarray:
 
     return np.array(cleaned_data)
 
-def setup_environment(client, api_name, aggregator_path, profile):
+def setup_environment(client, api_name, aggregator_path, profile:str=None):
     """
     Set up public and private folders for data storage.
 
@@ -55,7 +55,7 @@ def setup_environment(client, api_name, aggregator_path, profile):
         tuple: Paths to restricted public and private folders.
     """
 
-    def create_private_folder(path: Path, client: Client, profile:str=None) -> Path:
+    def create_private_folder(path: Path, client: Client, profile) -> Path:
         """
         Create a private folder within the specified path.
 
@@ -187,7 +187,7 @@ def run_federated_analytics(restricted_public_folder, private_folder, viewing_hi
     netflix_file_path = 'data/netflix_titles.csv'
     netflix_show_data = load_csv_to_numpy(netflix_file_path)
 
-    title_genre_dict = fa.create_title_genre_dict(netflix_show_data, title_col=2, genre_col=10) # tmp dict - may be useful for aggregates.
+    title_genre_dict = fa.create_title_field_dict(netflix_show_data, title_col=2, field_col=10) # tmp dict - may be useful for aggregates.
     user_information = fa.add_column_from_dict(aggregated_history, ratings_dict, key_col=0, new_col_name='rating')
 
     # This is an enhanced data compared with the retrieved viewing history from Netflix website
