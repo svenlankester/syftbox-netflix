@@ -11,6 +11,8 @@ from syftbox.lib import Client
 
 
 from participant.federated_learning.svd_participant_finetuning import participant_fine_tuning
+from participant.federated_learning.svd_server_initialisation import initialize_item_factors
+from participant.server_utils.data_loading import load_tv_vocabulary, load_imdb_ratings
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -21,59 +23,20 @@ def normalize_string(s):
     """
     return s.replace('\u200b', '').lower()
 
-def server_initialization():
-    import numpy as np
-    import os
-    import json
+def server_initialization(save_to:str = "mock_dataset_location/tmp_model_parms", tv_series_path="aggregator/data/tv-series_vocabulary.json", imdb_ratings_path="data/imdb_ratings.npy"):
 
-    # Step 1: Load vocabulary
-    with open("aggregator/data/tv-series_vocabulary.json", "r") as f:
-        tv_vocab = json.load(f)
+    # Step 1: Load vocabulary and IMDB ratings
+    tv_vocab = load_tv_vocabulary(tv_series_path)
+    imdb_ratings = load_imdb_ratings(imdb_ratings_path)
 
     # Step 2: Load and normalize IMDB ratings
-    imdb_ratings_path = os.path.join("data", 'imdb_ratings.npy')
     imdb_data = np.load(imdb_ratings_path, allow_pickle=True).item()
     imdb_ratings = {normalize_string(title): float(rating) for title, rating in imdb_data.items() if rating}
 
-    # Step 3: Initialize item factors V
-    k = 10  # Latent dimensionality
-    num_items = max(tv_vocab.values()) + 1  # Ensure V covers all items in the vocabulary
-    np.random.seed(42)  # For reproducibility
-
-
-    not_found = 0
-    default_rating = np.mean(list(imdb_ratings.values()))  # Mean IMDB rating [1, 10]
-    k = 10  # Latent dimensionality
-    num_items = max(tv_vocab.values()) + 1  # Total number of items
-
-    # Initialize V directly based on IMDB ratings or default rating
-    V = np.zeros((num_items, k))
-
-    for title, idx in tv_vocab.items():
-        normalized_title = normalize_string(title)
-        
-        if normalized_title in imdb_ratings:
-            rating = imdb_ratings[normalized_title]
-        else:
-            # rating = np.random.normal(loc=default_rating, scale=0.5)  # Random value close to default_rating
-            rating = np.random.normal(loc=default_rating, scale=0.1, size=k)
-
-            not_found += 1
-
-        # Create a base latent representation proportional to the IMDB rating
-        # Higher ratings should lead to stronger initial vectors
-        base_vector = np.full(k, rating)
-
-        # Add variability across dimensions by adding small random noise around the base rating
-        V[idx] = base_vector + np.random.normal(scale=0.2 * rating, size=k)
-
-    # Normalize each item's vector to have unit norm (ensuring diverse yet consistent scales)
-    V = V / np.linalg.norm(V, axis=1, keepdims=True)
-
-    print(f"Initialized item factors for {len(V)} shows. {not_found} shows not found in IMDB data.")
+    # Step 2: Initialize item factors
+    V = initialize_item_factors(tv_vocab, imdb_ratings)
 
     # Step 4: Save the initialized model
-    save_to = "mock_dataset_location/tmp_model_parms"
     os.makedirs(save_to, exist_ok=True)
     np.save(os.path.join(save_to, "global_V.npy"), V)
 
@@ -236,13 +199,17 @@ def run_process():
     API_NAME = os.getenv("API_NAME")
     AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
     NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES")
+    netflix_profiles_list = NETFLIX_PROFILES.split(",")
+
+    test_user = netflix_profiles_list[0]
+    # test_user = f'{test_user}_mock0' # For testing with simulations
 
     client = Client.load()
 
     restricted_public_folders = {}
     private_folders = {}
 
-    for profile in NETFLIX_PROFILES.split(","):
+    for profile in netflix_profiles_list:
         restricted_public_folders[profile], private_folders[profile] = setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile)
 
     ########################################
@@ -251,8 +218,8 @@ def run_process():
 
     # Clear folder
     fldr_base = "mock_dataset_location/tmp_model_parms"
-    user_ids = ["myshows", "mysister", "mydad", "mymom", "mykid"]
-    user_ids = ["myshows", "mydad", "mymom", "mykid"]
+    user_ids = netflix_profiles_list
+    # user_ids = netflix_profiles_list[:-1] # Exclude the last user for testing
 
     for user_id in user_ids:
         fldr_user = os.path.join(fldr_base, user_id)
@@ -266,7 +233,35 @@ def run_process():
     delta_V = {}
     for user_id in user_ids:
         # Fine-tuning of the item embeddings with user data
-        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=10, clipping_threshold=None) #0.36
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=10, noise_type="gaussian", clipping_threshold=None, plot=True) #0.36
+
+    # # Dictionary to store all mocked user IDs and map them to original user IDs
+    # mocked_to_original_mapping = {}
+
+    # # Single dictionary to store all user_id deltas
+    # delta_V = {}
+
+    # # Mocking the process 50 times
+    # for i in range(50):
+    #     for original_user_id in private_folders.keys():
+    #         # Create a mocked user ID
+    #         mocked_user_id = f"{original_user_id}_mock{i}"
+
+    #         # Map mocked user ID to original user ID
+    #         mocked_to_original_mapping[mocked_user_id] = original_user_id
+
+    #         # Use the original user ID to retrieve the private folder
+    #         private_folder = private_folders[original_user_id]
+
+    #         # Perform fine-tuning
+    #         delta_V[mocked_user_id] = participant_fine_tuning(
+    #             mocked_user_id,
+    #             private_folder,
+    #             epsilon=10,
+    #             clipping_threshold=None,
+    #             plot=False
+    #         )
+
 
     ########################################
     # Step 1: Local Recommendation Computation
@@ -276,7 +271,7 @@ def run_process():
         tv_vocab = json.load(f)
 
     # Example user data
-    my_activity_path = os.path.join(restricted_public_folders['myshows'], 'netflix_aggregated.npy')
+    my_activity_path = os.path.join(restricted_public_folders[test_user], 'netflix_aggregated.npy')
     my_activity = np.load(my_activity_path, allow_pickle=True) # Title, Week, Rating
 
     my_activity_formatted = np.empty(my_activity.shape, dtype=object)
@@ -286,16 +281,16 @@ def run_process():
     my_activity_formatted[:, 3] = my_activity[:, 3].astype(float)  # Ratings as float
 
     print("Vanilla Recommendations (IMDB)...")
-    top_6 = local_recommendation('myshows', tv_vocab, user_ratings=my_activity_formatted)
+    top_6 = local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted)
 
     print("Updating Global Model with user deltas...")
     # Server aggregation
-    # server_aggregate([delta_V['myshows'], delta_V['mysister']])
+    # server_aggregate([delta_V[user_ids[0]], delta_V[user_ids[1]]])
     delta_V_list = list(delta_V.values())
-    server_aggregate(delta_V_list, epsilon=10, clipping_threshold=None)
+    server_aggregate(delta_V_list, epsilon=None, clipping_threshold=None)
 
     print("Federated Recommendations (IMDB)...")
-    top_6 = local_recommendation('myshows', tv_vocab, user_ratings=my_activity_formatted)
+    top_6 = local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted)
 
 
     # Logs
@@ -391,7 +386,7 @@ def run_process():
 
     # Load model parameters
     load_from = "mock_dataset_location/tmp_model_parms"
-    local_U_path = os.path.join(load_from, "myshows", "myshows_U.npy")
+    local_U_path = os.path.join(load_from, test_user, f"{test_user}_U.npy")
     global_V_path = os.path.join(load_from, "global_V.npy")
 
     local_U = np.load(local_U_path)
@@ -462,7 +457,7 @@ def run_process():
 
     # Mock server load:
     server_global_V = np.load(os.path.join(save_to, "global_V.npy"))
-    server_local_U = np.load(os.path.join(save_to, "myshows", "myshows_U.npy"))
+    server_local_U = np.load(os.path.join(save_to, test_user, f"{test_user}_U.npy"))
 
     # If we added a new item not previously in server_global_V, we need to align the dimensions.
     # Assume server_global_V shape: [N_items, k]
@@ -477,7 +472,7 @@ def run_process():
     server_global_V[new_item_id] += delta_V
 
     # Save updated global parameters:
-    np.save(os.path.join(save_to, "myshows", "myshows_U.npy"), server_local_U)
+    np.save(os.path.join(save_to, test_user, f"{test_user}_U.npy"), server_local_U)
     np.save(os.path.join(save_to, "global_V.npy"), server_global_V)
 
     print("\nServer: Applied client delta updates to global parameters and re-saved.")
@@ -487,7 +482,7 @@ def run_process():
 
     ### Re-run local recommendation to see if the new item is now recommended
     print("Recalculating recommendations after user interaction and model update to verify consistency...")
-    local_recommendation("myshows", tv_vocab, user_ratings=my_activity_formatted[:-1])
+    local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted[:-1])
 
 
 if __name__ == "__main__":

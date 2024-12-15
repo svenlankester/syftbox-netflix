@@ -24,7 +24,7 @@ def is_file_modified_today(file_path):
     return file_mod_date == date.today()
 
 
-def should_run(interval=20) -> bool:
+def should_run(interval=1) -> bool:
     INTERVAL = interval
     timestamp_file = f"./script_timestamps/{API_NAME}_last_run"
     os.makedirs(os.path.dirname(timestamp_file), exist_ok=True)

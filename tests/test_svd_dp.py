@@ -6,6 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import copy
 from participant.federated_learning.svd_dp import (
+    get_noise_function,
     apply_differential_privacy,
     plot_delta_distributions,
     calculate_optimal_threshold,
@@ -74,42 +75,106 @@ class TestApplyDifferentialPrivacy(unittest.TestCase):
         self.sensitivity = 0.5  # Sensitivity (pre-clipped norm)
 
     def test_noise_addition(self):
-        dp_deltas = apply_differential_privacy(copy.deepcopy(self.delta_V), epsilon=self.epsilon, sensitivity=self.sensitivity)
-
-        for item_id, delta in dp_deltas.items():
-            # Ensure the deltas differ significantly
-            self.assertFalse(np.allclose(delta, self.delta_V[item_id], atol=1e-6), f"Noise was not added for item {item_id}")
+        """Test that noise is added to the deltas."""
+        for noise_type in ["gaussian", "laplace"]:
+            with self.subTest(noise_type=noise_type):
+                dp_deltas = apply_differential_privacy(
+                    copy.deepcopy(self.delta_V),
+                    epsilon=self.epsilon,
+                    sensitivity=self.sensitivity,
+                    noise_type=noise_type,
+                )
+                for item_id, delta in dp_deltas.items():
+                    self.assertFalse(
+                        np.allclose(delta, self.delta_V[item_id], atol=1e-6),
+                        f"Noise was not added for item {item_id} with noise type {noise_type}",
+                    )
 
     def test_noise_scale_calculation(self):
-        # Test if noise scale is calculated correctly
-        with patch("numpy.random.normal") as mock_random_normal:
-            mock_random_normal.return_value = np.zeros_like(list(self.delta_V.values())[0])  # Mock noise to avoid randomness
-            apply_differential_privacy(copy.deepcopy(self.delta_V), epsilon=self.epsilon, sensitivity=self.sensitivity)
+        """Verify noise scale calculation for Gaussian and Laplace noise."""
+        for noise_type in ["gaussian", "laplace"]:
+            with self.subTest(noise_type=noise_type):
+                if noise_type == "gaussian":
+                    expected_scale = np.sqrt(2 * np.log(1.25 / 1e-5)) * (self.sensitivity / self.epsilon)
+                    patch_target = "numpy.random.normal"
+                elif noise_type == "laplace":
+                    expected_scale = self.sensitivity / self.epsilon
+                    patch_target = "numpy.random.laplace"
 
-            # Ensure noise scale matches sensitivity / epsilon
-            expected_scale = self.sensitivity / self.epsilon
-            mock_random_normal.assert_called_with(scale=expected_scale, size=(3,))  # Check if scale matches
+                # Mock noise generator with correct shape
+                with patch(patch_target) as mock_random:
+                    mock_random.return_value = np.zeros(3)  # Correctly shaped mock return
+                    apply_differential_privacy(
+                        copy.deepcopy(self.delta_V),
+                        epsilon=self.epsilon,
+                        sensitivity=self.sensitivity,
+                        noise_type=noise_type,
+                    )
+                    # Validate noise function call with expected parameters
+                    mock_random.assert_called_with(
+                        loc=0, scale=expected_scale, size=(3,)
+                    )
 
     def test_empty_deltas(self):
-        # Test with empty delta dictionary
+        """Ensure function handles empty dictionaries correctly."""
         dp_deltas = apply_differential_privacy({}, epsilon=self.epsilon, sensitivity=self.sensitivity)
         self.assertEqual(dp_deltas, {}, "Function did not handle empty deltas correctly.")
 
     def test_high_epsilon(self):
-        dp_deltas = apply_differential_privacy(copy.deepcopy(self.delta_V), epsilon=1e6, sensitivity=self.sensitivity)
-
+        """Verify that high epsilon produces minimal noise."""
+        dp_deltas = apply_differential_privacy(
+            copy.deepcopy(self.delta_V),
+            epsilon=1e6,  # High epsilon
+            sensitivity=self.sensitivity,
+        )
         for item_id, delta in dp_deltas.items():
-            # Ensure minimal noise impact
             self.assertTrue(
                 np.allclose(delta, self.delta_V[item_id], atol=1e-4),
-                "Unexpected noise added for high epsilon."
+                f"Unexpected noise added for item {item_id} with high epsilon.",
             )
 
     def test_low_epsilon(self):
-        dp_deltas = apply_differential_privacy(copy.deepcopy(self.delta_V), epsilon=1e-3, sensitivity=self.sensitivity)
-
+        """Verify that low epsilon produces significant noise."""
+        dp_deltas = apply_differential_privacy(
+            copy.deepcopy(self.delta_V),
+            epsilon=1e-3,  # Low epsilon
+            sensitivity=self.sensitivity,
+        )
         for item_id, delta in dp_deltas.items():
             norm_original = np.linalg.norm(self.delta_V[item_id])
             norm_noised = np.linalg.norm(delta)
-            # Ensure the norms differ significantly
-            self.assertNotAlmostEqual(norm_original, norm_noised, places=1, msg="Noise not significant for low epsilon.")
+            self.assertNotAlmostEqual(
+                norm_original,
+                norm_noised,
+                places=1,
+                msg=f"Noise not significant for item {item_id} with low epsilon.",
+            )
+
+    def test_invalid_noise_type(self):
+        """Ensure an invalid noise type raises a ValueError."""
+        with self.assertRaises(ValueError):
+            apply_differential_privacy(
+                copy.deepcopy(self.delta_V),
+                epsilon=self.epsilon,
+                sensitivity=self.sensitivity,
+                noise_type="invalid",
+            )
+
+    def test_get_noise_function_gaussian(self):
+        """Test that the factory returns a valid Gaussian noise function."""
+        noise_func = get_noise_function("gaussian")
+        noise = noise_func(self.sensitivity, self.epsilon, size=10)
+        self.assertEqual(noise.shape, (10,))
+        self.assertIsInstance(noise, np.ndarray)
+
+    def test_get_noise_function_laplace(self):
+        """Test that the factory returns a valid Laplace noise function."""
+        noise_func = get_noise_function("laplace")
+        noise = noise_func(self.sensitivity, self.epsilon, size=10)
+        self.assertEqual(noise.shape, (10,))
+        self.assertIsInstance(noise, np.ndarray)
+
+    def test_get_noise_function_invalid(self):
+        """Ensure invalid noise type raises ValueError."""
+        with self.assertRaises(ValueError):
+            get_noise_function("invalid")

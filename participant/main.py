@@ -23,6 +23,8 @@ API_NAME = os.getenv("API_NAME")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 CSV_NAME = os.getenv("NETFLIX_CSV")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR")
+NETFLIX_PROFILE = os.getenv("NETFLIX_PROFILE", None)
+NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES", NETFLIX_PROFILE)
 
 def load_csv_to_numpy(file_path: str) -> np.ndarray:
     """
@@ -97,7 +99,7 @@ def setup_environment(client, api_name, aggregator_path, profile:str=None):
     private_folder = create_private_folder(client.datasite_path, client, profile)
     return restricted_public_folder, private_folder
 
-def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
+def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple[str, np.ndarray]:
     """
     Ensure the latest Netflix data exists or download it if missing.
     After retrieval, load the data into a NumPy array for further processing.
@@ -107,7 +109,9 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
     """
     # Construct paths and file names
     # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
-    datapath = output_dir
+    datapath = os.path.join(output_dir, profile) if profile else output_dir
+    os.makedirs(datapath, exist_ok=True)
+
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(csv_name)[0]
     
@@ -123,7 +127,7 @@ def get_or_download_latest_data(output_dir, csv_name) -> Tuple[str, np.ndarray]:
             os.environ['CHROMEDRIVER_PATH'] = chromedriver_path
             if not os.path.exists(file_path):
                 print(f"Data file not found. Downloading to {file_path}...")
-                download_daily_data(datapath, filename)
+                download_daily_data(datapath, filename, profile)
                 print(f"Successfully downloaded Netflix data to {file_path}.")
             static_file = False
             
@@ -196,10 +200,10 @@ def run_federated_analytics(restricted_public_folder, private_folder, viewing_hi
 
     # Save data
     fa.save_npy_data(restricted_public_folder, "netflix_reduced.npy", reduced_history)
-    fa.save_npy_data(restricted_public_folder, "netflix_aggregated.npy", aggregated_history)
+    fa.save_npy_data(restricted_public_folder, "netflix_aggregated.npy", user_information)
     fa.save_npy_data(private_folder, "netflix_full.npy", viewing_history)
-    fa.save_npy_data(private_folder, "my_shows_data_full.npy", my_shows_data)
-    fa.save_npy_data(private_folder, "my_shows_data_ratings.npy", ratings_dict)
+    fa.save_npy_data(private_folder, "data_full.npy", my_shows_data)
+    fa.save_npy_data(private_folder, "ratings.npy", ratings_dict)
 
 def run_federated_learning(aggregator_path, restricted_public_folder, private_folder, viewing_history, latest_data_file, datasite_parent_path):
     netflix_file_path = 'data/netflix_titles.csv'
@@ -230,28 +234,34 @@ def main():
         sys.exit(0)
 
     # Set up environment
-    restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE)
 
-    # Try to retrieve user data from datasets.yaml
-    dataset_yaml = participants_datasets(client.datasite_path, dataset_name = "Netflix Data", dataset_format = "CSV")
-    
-    if (dataset_yaml is None):
-        # if not available on datasets.yaml, Fetch and load Netflix data 
-        latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME)
-    else:
-        print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
-        latest_data_file = dataset_yaml
-        try: 
-            viewing_history = load_csv_to_numpy(dataset_yaml)
-        except Exception as e:
-            print(f"[Error] to load retrieved path for NetflixViewingHistory.csv from datasets.yaml \n{e}")
-            sys.exit(1)
+    for profile in NETFLIX_PROFILES.split(","):
+        if NETFLIX_PROFILE:
+            # Tmp not to break the existing code and references
+            restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE)
+        else:
+            restricted_public_folder, private_folder = setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile)
 
-    # Run private processes and write to public/private/restricted directories
-    run_federated_analytics(restricted_public_folder, private_folder, viewing_history)
-    run_federated_learning(AGGREGATOR_DATASITE, restricted_public_folder, private_folder, viewing_history, latest_data_file, client.datasite_path.parent)
-    run_top5_dp(private_folder / "tvseries_views_sparse_vector.npy", restricted_public_folder, verbose=False)
-    ##############
+        # Try to retrieve user data from datasets.yaml
+        dataset_yaml = participants_datasets(client.datasite_path, dataset_name = "Netflix Data", dataset_format = "CSV")
+        
+        if (dataset_yaml is None):
+            # if not available on datasets.yaml, Fetch and load Netflix data 
+            latest_data_file, viewing_history = get_or_download_latest_data(OUTPUT_DIR, CSV_NAME, profile)
+        else:
+            print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
+            latest_data_file = dataset_yaml
+            try: 
+                viewing_history = load_csv_to_numpy(dataset_yaml)
+            except Exception as e:
+                print(f"[Error] to load retrieved path for NetflixViewingHistory.csv from datasets.yaml \n{e}")
+                sys.exit(1)
+
+        # Run private processes and write to public/private/restricted directories
+        run_federated_analytics(restricted_public_folder, private_folder, viewing_history)
+        run_federated_learning(AGGREGATOR_DATASITE, restricted_public_folder, private_folder, viewing_history, latest_data_file, client.datasite_path.parent)
+        run_top5_dp(private_folder / "tvseries_views_sparse_vector.npy", restricted_public_folder, verbose=False)
+        ##############
 
 if __name__ == "__main__":
     try:
