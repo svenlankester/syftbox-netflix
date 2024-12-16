@@ -8,6 +8,7 @@ from participant.participant_utils.data_loading import (
     load_or_initialize_user_matrix)
 from participant.federated_learning.svd_dp import (
     plot_delta_distributions,
+    plot_ratings_norm,
     clip_deltas,
     apply_differential_privacy
 )
@@ -61,7 +62,7 @@ def perform_local_training(train_data, initial_V, initial_U_u, alpha=0.01, lambd
             V[item_id] += alpha * V_i_grad
     return initial_V, V, U_u
 
-def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_threshold=None, save_path="mock_dataset_location/tmp_model_parms", plot=False):
+def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_threshold=None, noise_type="gaussian", save_path="mock_dataset_location/tmp_model_parms", plot=False):
     """
     Orchestrator function for participant fine-tuning.
     """
@@ -85,19 +86,26 @@ def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_thre
     initial_V, updated_V, updated_U_u = perform_local_training(train_data, V, U_u)
 
     # Step 7: Compute and privatize deltas
+    ids_training = [item_id for (_, item_id, _) in train_data]
     delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for (_, item_id, _) in train_data}
-    delta_norms_before = [np.linalg.norm(v) for v in delta_V.values()]
+    # delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for item_id, _ in enumerate(initial_V)}
+    # delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values()) if i in ids_training]
+    delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values())]
 
     clipped_deltas, sensitivity = clip_deltas(delta_V, clipping_threshold)
-    dp_deltas = apply_differential_privacy(clipped_deltas, epsilon, sensitivity)
-    delta_norms_after = [np.linalg.norm(v) for v in dp_deltas.values()]
+    dp_deltas = apply_differential_privacy(delta_V, epsilon, 0.36, noise_type=noise_type)
+    # delta_norms_after = [np.linalg.norm(v) for i, v in enumerate(dp_deltas.values()) if i in ids_training]
+    delta_norms_after = [np.linalg.norm(v) for i, v in enumerate(dp_deltas.values())]
 
     # Step 8: Save results
     save_training_results(user_id, save_path, updated_V, dp_deltas, updated_U_u)
 
     if plot:
         # Step 9: Plot delta distributions
-        plot_delta_distributions(delta_norms_before, delta_norms_after)
+        # sorted_item_ids = sorted(delta_V.keys())
+        sorted_item_ids = range(0, len(ids_training))
+        # plot_delta_distributions(user_id, delta_norms_before, delta_norms_after)
+        plot_ratings_norm(user_id, sorted_item_ids, delta_norms_before, delta_norms_after)
 
     print(f"Participant {user_id} finished training and updated item factors.")
     return delta_V

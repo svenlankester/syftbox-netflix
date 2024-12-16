@@ -75,7 +75,7 @@ class NetflixFetcher:
         self.driver.get("https://www.netflix.com/viewingactivity")
         time.sleep(3)
         self.driver.find_element(By.LINK_TEXT, "Download all").click()
-        time.sleep(10)
+        time.sleep(20)
         self.rename_downloaded_file()
 
     def rename_downloaded_file(self):
