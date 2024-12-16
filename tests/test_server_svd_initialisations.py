@@ -10,6 +10,7 @@ from participant.federated_learning.mock_svd import normalize_string, server_ini
 
 from participant.federated_learning.svd_server_initialisation import initialize_item_factors, get_rating_with_fallback, generate_item_vector, normalize_vectors
 
+
 class TestNormalizeString(unittest.TestCase):
 
     def test_normalization(self):
@@ -112,7 +113,6 @@ class TestInitializeItemFactors(unittest.TestCase):
         normalized = normalize_vectors(V)
         np.testing.assert_allclose(np.linalg.norm(normalized, axis=1), [1, 0, 1], atol=1e-6)
 
-
     # def test_initialization(self):
     #     # start to think of end-to-end testing
     #     # Run server initialization
@@ -125,74 +125,6 @@ class TestInitializeItemFactors(unittest.TestCase):
     #     global_V = np.load(self.global_V_path)
     #     self.assertEqual(global_V.shape[0], 2)  # Two items in the vocabulary
     #     self.assertEqual(global_V.shape[1], 10)  # Latent dimension
-
-# class TestServerAggregate(unittest.TestCase):
-
-#     def setUp(self):
-#         # Setup sandboxed test environment
-#         self.sandbox_dir = "test_sandbox/server_aggregate"
-#         self.save_path = os.path.join(self.sandbox_dir, "tmp_model_parms")
-#         self.global_V_path = os.path.join(self.save_path, "global_V.npy")
-
-#         # Create sandbox directories
-#         os.makedirs(self.save_path, exist_ok=True)
-
-#         # Mock data
-#         self.global_V = np.random.rand(3, 10)
-#         self.updates = [
-#             {0: np.array([0.1, 0.2, 0.3]), 1: np.array([0.4, 0.5, 0.6])},
-#             {1: np.array([0.7, 0.8, 0.9]), 2: np.array([0.2, 0.3, 0.4])},
-#         ]
-
-#         # Save mock global_V data
-#         np.save(self.global_V_path, self.global_V)
-
-#     def tearDown(self):
-#         # Remove sandbox directory after each test
-#         if os.path.exists(self.sandbox_dir):
-#             shutil.rmtree(self.sandbox_dir)
-
-#     def test_weighted_aggregation(self):
-#         # Run server aggregation
-#         server_aggregate(self.updates, weights=[0.6, 0.4])
-
-#         # Check the updated global_V
-#         updated_V = np.load(self.global_V_path)
-
-#         # Validate shape and basic update logic
-#         self.assertEqual(updated_V.shape, self.global_V.shape)
-
-#     def test_clipping(self):
-#         # Run server aggregation with clipping
-#         server_aggregate(self.updates, clipping_threshold=0.5)
-
-#         # Check the updated global_V
-#         updated_V = np.load(self.global_V_path)
-
-#         # Validate that updates were clipped
-#         for update in self.updates:
-#             for delta in update.values():
-#                 self.assertLessEqual(np.linalg.norm(delta), 0.5)
-
-#     def test_dp_noise_addition(self):
-#         # Run server aggregation with DP noise
-#         server_aggregate(self.updates, epsilon=1.0)
-
-#         # Check the updated global_V
-#         updated_V = np.load(self.global_V_path)
-
-#         # Validate that noise was added
-#         self.assertFalse(np.allclose(updated_V, self.global_V, atol=1e-4))
-
-#     def test_missing_updates(self):
-#         # Run server aggregation with one update missing an item
-#         server_aggregate([self.updates[0]])
-
-#         # Check the updated global_V
-#         updated_V = np.load(self.global_V_path)
-
-#         # Validate that missing items were handled gracefully
-#         self.assertEqual(updated_V.shape, self.global_V.shape)
 
 if __name__ == "__main__":
     unittest.main()

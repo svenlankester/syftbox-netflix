@@ -20,13 +20,11 @@ def initialize_item_factors(tv_vocab: dict, imdb_ratings: dict, latent_dim: int 
     print(f"Initialized item factors for {num_items} items. {not_found} items not found in IMDB data.")
     return V
 
-
 def get_rating_with_fallback(normalized_title: str, imdb_ratings: dict, default_rating: float) -> float:
     """
     Retrieve a rating or use the default.
     """
     return imdb_ratings.get(normalized_title, default_rating)
-
 
 def generate_item_vector(rating: float, latent_dim: int) -> np.ndarray:
     """
@@ -40,7 +38,6 @@ def generate_item_vector(rating: float, latent_dim: int) -> np.ndarray:
     min_val = rating - 0.2 * rating
     max_val = rating + 0.2 * rating
     return np.clip(vector, min_val, max_val)
-
 
 def normalize_vectors(V: np.ndarray) -> np.ndarray:
     """

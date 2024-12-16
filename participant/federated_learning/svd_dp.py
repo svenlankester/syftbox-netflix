@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import copy
 
 def calculate_optimal_threshold(delta_V, method="median"):
     """
@@ -83,11 +84,12 @@ def apply_differential_privacy(delta_V, epsilon, sensitivity, noise_type="gaussi
     Returns:
         dict: Differentially private deltas.
     """
+    result = copy.deepcopy(delta_V)
     # Calculate noise scale
     noise_function = get_noise_function(noise_type)
 
     # Apply noise to deltas
-    for item_id, delta in delta_V.items():
+    for item_id, delta in result.items():
         norm = np.linalg.norm(delta)
         noise = noise_function(sensitivity, epsilon, size=delta.shape)
 
@@ -98,9 +100,9 @@ def apply_differential_privacy(delta_V, epsilon, sensitivity, noise_type="gaussi
         else:  # If norm is zero, just add noise
             delta += noise
 
-        delta_V[item_id] = delta
+        result[item_id] = delta
 
-    return delta_V
+    return result
 
 def plot_delta_distributions(user_id, delta_norms_before, delta_norms_after, clipping_threshold=0.8):
     """

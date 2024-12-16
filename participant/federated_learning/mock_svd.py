@@ -12,7 +12,8 @@ from syftbox.lib import Client
 
 from participant.federated_learning.svd_participant_finetuning import participant_fine_tuning
 from participant.federated_learning.svd_server_initialisation import initialize_item_factors
-from participant.server_utils.data_loading import load_tv_vocabulary, load_imdb_ratings
+from participant.federated_learning.svd_server_aggregation import aggregate_item_factors
+from participant.server_utils.data_loading import load_tv_vocabulary, load_imdb_ratings, load_global_item_factors
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -42,85 +43,35 @@ def server_initialization(save_to:str = "mock_dataset_location/tmp_model_parms",
 
     print("Server initialization complete. Item factors (V) are saved.")
 
-def server_aggregate(updates, weights=None, learning_rate=1.0, epsilon=4.0, clipping_threshold=0.5):
+def server_aggregate(updates, weights=None, learning_rate=1.0, epsilon=1.0, clipping_threshold=0.5, save_to="mock_dataset_location/tmp_model_parms"):
     """
-    Aggregate updates from participants using a weighted average.
-    Missing updates for specific items are handled gracefully.
+    Orchestrates the server aggregation process:
+    1. Loads current global item factors.
+    2. Calls `aggregate_item_factors` to perform the aggregation.
+    3. Saves the updated global item factors.
 
     Args:
         updates (list[dict]): List of delta dictionaries from participants.
-                              Each dictionary maps item_id -> delta vector.
-        weights (list[float]): List of weights for each participant. If None, equal weight is assumed.
+        weights (list[float]): List of weights for each participant. If None, equal weights are assumed.
         learning_rate (float): Scaling factor for the aggregated deltas.
+        epsilon (float): Privacy budget for differential privacy.
+        clipping_threshold (float): Clipping threshold for updates.
+        save_to (str): Path to save the updated global item factors.
     """
-    import numpy as np
-    import os
+    global_V_path = os.path.join(save_to, "global_V.npy")
 
-    # Step 1: Load current global V
-    global_V_path = os.path.join("mock_dataset_location/tmp_model_parms", "global_V.npy")
-    V = np.load(global_V_path)
+    # Step 1: Load current global item factors
+    V = load_global_item_factors(global_V_path)
 
-    # Step 2: Initialize weights
-    if weights is None:
-        weights = [1.0] * len(updates)  # Equal weight for all participants
+    # Step 2: Aggregate updates
+    V = aggregate_item_factors(
+        V, updates, weights=weights, learning_rate=learning_rate, epsilon=epsilon, clipping_threshold=clipping_threshold
+    )
 
-    if len(weights) != len(updates):
-        raise ValueError("The number of weights must match the number of updates.")
-
-    # Normalize weights to sum to 1
-    total_weight = sum(weights)
-    normalized_weights = [w / total_weight for w in weights]
-
-    # Step 3: Aggregate updates with clipping and DP noise
-    aggregated_delta = {item_id: np.zeros_like(V[item_id]) for item_id in range(len(V))}
-
-
-    for i, delta_V in enumerate(updates):
-        weight = normalized_weights[i] * learning_rate
-        for item_id, delta in delta_V.items():
-            # Clip updates
-            if clipping_threshold:
-                norm = np.linalg.norm(delta)
-                if norm > clipping_threshold:
-                    delta = (delta / norm) * clipping_threshold
-            # Weighted aggregation
-            aggregated_delta[item_id] += weight * delta
-
-    # Add DP noise to the aggregated updates
-    # if epsilon:
-    #     noise_scale = clipping_threshold / epsilon
-    #     for item_id in aggregated_delta:
-    #         noise = np.random.normal(scale=noise_scale, size=aggregated_delta[item_id].shape)
-    #         aggregated_delta[item_id] += noise
-
-    if epsilon:
-        if clipping_threshold is None:
-            clipping_threshold = np.max([np.linalg.norm(delta) for delta in aggregated_delta.values()])
-        noise_scale = clipping_threshold / epsilon
-        for item_id in delta_V:
-            delta_norm = np.linalg.norm(delta_V[item_id])
-            if delta_norm > 0:  # Avoid division by zero
-                # Normalize, add noise, and rescale
-                aggregated_delta[item_id] /= delta_norm
-                noise = np.random.normal(scale=noise_scale, size=aggregated_delta[item_id].shape)
-                aggregated_delta[item_id] += noise
-                aggregated_delta[item_id] *= delta_norm
-
-    else:
-        # Normal aggregation
-        for i, delta_V in enumerate(updates):
-            weight = normalized_weights[i] * learning_rate
-            for item_id, delta in delta_V.items():
-                V[item_id] += weight * delta  # Apply weighted delta for this participant
-
-    # Step 4: Apply the aggregated updates to the global model
-    for item_id, delta in aggregated_delta.items():
-        V[item_id] += delta
-    
-
-
-    # Step 4: Save the updated global V
+    # Step 3: Save the updated global item factors
+    os.makedirs(os.path.dirname(global_V_path), exist_ok=True)
     np.save(global_V_path, V)
+
     print("Server aggregation complete. Global item factors (V) updated.")
 
 def local_recommendation(user_id, tv_vocab, user_ratings, exclude_watched=True):
@@ -233,7 +184,7 @@ def run_process():
     delta_V = {}
     for user_id in user_ids:
         # Fine-tuning of the item embeddings with user data
-        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=10, noise_type="gaussian", clipping_threshold=None, plot=True) #0.36
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False) #0.36
 
     # # Dictionary to store all mocked user IDs and map them to original user IDs
     # mocked_to_original_mapping = {}
