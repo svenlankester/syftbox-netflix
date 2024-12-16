@@ -92,8 +92,9 @@ def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_thre
     # delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values()) if i in ids_training]
     delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values())]
 
-    clipped_deltas, sensitivity = clip_deltas(delta_V, clipping_threshold)
+    # clipped_deltas, sensitivity = clip_deltas(delta_V, clipping_threshold)
     dp_deltas = apply_differential_privacy(delta_V, epsilon, 0.36, noise_type=noise_type)
+    # dp_deltas = delta_V
     # delta_norms_after = [np.linalg.norm(v) for i, v in enumerate(dp_deltas.values()) if i in ids_training]
     delta_norms_after = [np.linalg.norm(v) for i, v in enumerate(dp_deltas.values())]
 

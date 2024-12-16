@@ -47,3 +47,29 @@ def normalize_string(s):
         str: The normalized string.
     """
     return s.replace('\u200b', '').lower()
+
+def load_global_item_factors(path):
+    """
+    Load the global item factors matrix from the given path.
+
+    Args:
+        path (str): Path to the file.
+
+    Returns:
+        np.ndarray: Global item factors matrix.
+    """
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"Global item factors file not found: {path}")
+    return np.load(path)
+
+def save_global_item_factors(V, path):
+    """
+    Save the global item factors matrix to the given path.
+
+    Args:
+        V (np.ndarray): Global item factors matrix.
+        path (str): Path to save the file.
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    np.save(path, V)
+    print(f"Global item factors saved at: {path}")
