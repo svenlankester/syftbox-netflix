@@ -64,9 +64,9 @@ def setup_environment(client, api_name, aggregator_path, profile:str=None):
         This function creates a directory structure containing the NetflixViewingHistory.csv.
         """
 
-        netflix_datapath: Path = path / "private" / "netflix_data"
+        netflix_datapath: Path = path / "private" / API_NAME
         if profile:
-            netflix_datapath: Path = path / "private" / "netflix_data" / profile
+            netflix_datapath: Path = path / "private" / API_NAME / profile
 
         os.makedirs(netflix_datapath, exist_ok=True)
 
