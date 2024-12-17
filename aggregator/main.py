@@ -8,6 +8,7 @@ from utils.vocab import create_tvseries_vocab
 from utils.syftbox import network_participants, create_shared_folder, participants_datasets
 from pets.fedavg_mlp import get_users_mlp_parameters, mlp_fedavg
 from pets.dp_top5 import dp_top5_series
+from pets.phe import generate_keys
 from syftbox.lib import Client
 
 API_NAME = os.getenv("API_NAME")
@@ -30,6 +31,10 @@ if __name__ == "__main__":
 
     # Here we do not use public folder for aggregator, but an api_folder accesible to participants only
     shared_folder_path = create_shared_folder(Path(client.datasite_path), API_NAME, client, peers)
+
+    # Paillier Homomorphic Encryption Setup
+    private_path = client.datasite_path / "private" / API_NAME
+    generate_keys(public_path=shared_folder_path, private_path=private_path)
     
     # Create a Vocabulary of TV Series
     create_tvseries_vocab(shared_folder_path)
