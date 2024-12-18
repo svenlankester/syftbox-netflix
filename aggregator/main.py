@@ -3,7 +3,6 @@
 import os
 import joblib
 from pathlib import Path
-from utils.checks import should_run
 from utils.vocab import create_tvseries_vocab
 from utils.syftbox import network_participants, create_shared_folder, participants_datasets
 from pets.fedavg_mlp import get_users_mlp_parameters, mlp_fedavg
@@ -16,10 +15,6 @@ DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 
 if __name__ == "__main__":
     client = Client.load()
-
-    if not should_run(60):
-        print(f"Skipping {API_NAME} as Aggregator, not enough time has passed.")
-        exit(0)
 
     datasites_path = Path(client.datasite_path.parent)   # automatically retrieve datasites path
 

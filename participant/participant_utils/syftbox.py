@@ -5,7 +5,7 @@ from participant_utils.checks import should_run
 
 API_NAME = os.getenv("API_NAME")
 
-def setup_environment(client, api_name, aggregator_path, profile:str=None):
+def setup_environment(client, api_name, aggregator_path, profile):
     """
     Set up public and private folders for data storage.
 
@@ -23,9 +23,7 @@ def setup_environment(client, api_name, aggregator_path, profile:str=None):
         This function creates a directory structure containing the NetflixViewingHistory.csv.
         """
 
-        netflix_datapath: Path = path / "private" / API_NAME
-        if profile:
-            netflix_datapath: Path = path / "private" / API_NAME / profile
+        netflix_datapath: Path = path / "private" / API_NAME / profile
 
         os.makedirs(netflix_datapath, exist_ok=True)
 
@@ -54,6 +52,7 @@ def setup_environment(client, api_name, aggregator_path, profile:str=None):
         restricted_public_folder = client.api_data(api_name) / profile
     else:
         restricted_public_folder = client.api_data(api_name)
+
     create_public_folder(restricted_public_folder, client, aggregator_path)
     private_folder = create_private_folder(client.datasite_path, client, profile)
     return restricted_public_folder, private_folder

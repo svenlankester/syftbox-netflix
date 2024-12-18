@@ -7,7 +7,7 @@ from typing import Tuple
 from datetime import datetime
 from syftbox.lib import Client
 import subprocess
-from loaders.netflix_loader import download_daily_data, get_latest_file
+from loaders.netflix_loader import download_daily_data, get_latest_file, participants_yaml_datasets
 
 API_NAME = os.getenv("API_NAME")
 
@@ -77,18 +77,36 @@ def load_csv_to_numpy(file_path: str) -> np.ndarray:
     return np.array(cleaned_data)
 
 
-def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple[str, np.ndarray]:
+def get_or_download_latest_data(datapath, csv_name, profile:str=None, experimental_config:dict=None) -> Tuple[str, np.ndarray]:
     """
     Ensure the latest Netflix data exists or download it if missing.
-    After retrieval, load the data into a NumPy array for further processing.
+    Optionally retrieve data from a YAML configuration if provided.
 
+    Args:
+        datapath (str): Path to the data directory.
+        csv_name (str): Name of the CSV file.
+        profile (str, optional): Profile name. Defaults to None.
+        experimental_config (dict, optional): Configuration for participants_datasets. Defaults to None.
+        
     Returns:
-        np.ndarray: The latest Netflix viewing history as a structured array.
-    """
-    # Construct paths and file names
-    # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
-    datapath = os.path.join(output_dir, profile) if profile else output_dir
-    
+        Tuple[str, np.ndarray]: The path to the latest data file and its content as a NumPy array.
+    """ 
+    # Check for dataset in the YAML file if experimental_config is provided
+    if experimental_config:
+        dataset_yaml = participants_yaml_datasets(
+            experimental_config.get("client_datasite_path"),
+            dataset_name=experimental_config.get("dataset_name", ""),
+            dataset_format=experimental_config.get("dataset_format", "")
+        )
+        
+        if dataset_yaml:
+            print(f">> Retrieving data from datasets.yaml: {dataset_yaml}")
+            try:
+                return dataset_yaml, load_csv_to_numpy(dataset_yaml)
+            except Exception as e:
+                print(f"[Error] Failed to load retrieved path from datasets.yaml: {e}")
+                sys.exit(1)
+
     try:
         os.makedirs(datapath, exist_ok=True)
     except Exception as e:
@@ -132,17 +150,7 @@ def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple
                     f">> Neither ChromeDriver is available for download nor the static file exists. "
                     f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
                 ))
-            
-                print(f">> Copying dummy file (data/dummy.csv) to {file_path_static}.")
-                try:
-                    with open('data/dummy.csv', 'rb') as src_file:
-                        with open(file_path_static, 'wb') as dest_file:
-                            dest_file.write(src_file.read())
-                    print(f">> Copied dummy file (data/dummy.csv) to {file_path_static}. For test purpose only!")
-                    static_file = True
-                except Exception as e: 
-                    print(f"[!] Error copying dummy file (data/dummy.csv) to {file_path_static}: {e}")
-                    sys.exit(1)
+                raise FileNotFoundError(f"Netflix viewing history file was not found: {file_path_static}")
 
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
