@@ -5,3 +5,4 @@ rapidfuzz
 scikit-learn
 selenium
 diffprivlib>=0.6.5
+phe

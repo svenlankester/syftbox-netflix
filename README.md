@@ -54,12 +54,7 @@ Configure this app inside SyftBox.
    ```bash
    cd /SyftBox/apis/syftbox-netflix
    ```
-2. Create an environment configuration file:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Open the `.env` file in a text editor and define at least `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. Optionally, fill in your Netflix account information to automate viewing history retrieval.
+2. Open the `.env` file in a text editor and **define at least** `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. Optionally, fill in your Netflix account information to automate viewing history retrieval.
 
 ### Data format (Netflix)
 The data provided by Netflix (Viewing History) is a comma-separated file (CSV), organized by Title and Date:

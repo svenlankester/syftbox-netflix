@@ -1,16 +1,14 @@
 import os
 import sys
 import numpy as np
-import csv
-from typing import Tuple
-from datetime import datetime
 from pathlib import Path
-import subprocess
-from syftbox.lib import Client, SyftPermission
+from syftbox.lib import Client
 from participant_utils.checks import should_run
+from participant_utils.syftbox import setup_environment
+from participant_utils.data_loading import load_csv_to_numpy, get_or_download_latest_data
 
 # Package functions
-from loaders.netflix_loader import download_daily_data, get_latest_file, participants_datasets
+from loaders.netflix_loader import participants_datasets
 import federated_analytics.data_processing as fa
 import federated_learning.mlp_model as mlp
 from federated_learning.sequence_data import SequenceData
@@ -26,156 +24,6 @@ OUTPUT_DIR = os.getenv("OUTPUT_DIR")
 NETFLIX_PROFILE = os.getenv("NETFLIX_PROFILE", None)
 NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES", NETFLIX_PROFILE)
 
-def load_csv_to_numpy(file_path: str) -> np.ndarray:
-    """
-    Load a CSV file into a NumPy array, handling quoted fields.
-
-    Args:
-        file_path (str): Path to the CSV file.
-
-    Returns:
-        np.ndarray: A 2D NumPy array containing the data from the CSV.
-    """
-    cleaned_data = []
-
-    with open(file_path, mode="r", encoding="utf-8") as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip the header
-        for row in reader:
-            cleaned_data.append(row)
-
-    return np.array(cleaned_data)
-
-def setup_environment(client, api_name, aggregator_path, profile:str=None):
-    """
-    Set up public and private folders for data storage.
-
-    Args:
-        client: Client instance for managing API and datasite paths.
-
-    Returns:
-        tuple: Paths to restricted public and private folders.
-    """
-
-    def create_private_folder(path: Path, client: Client, profile) -> Path:
-        """
-        Create a private folder within the specified path.
-
-        This function creates a directory structure containing the NetflixViewingHistory.csv.
-        """
-
-        netflix_datapath: Path = path / "private" / "netflix_data"
-        if profile:
-            netflix_datapath: Path = path / "private" / "netflix_data" / profile
-
-        os.makedirs(netflix_datapath, exist_ok=True)
-
-        # Set the default permissions
-        permissions = SyftPermission.datasite_default(email=client.email)
-        permissions.save(netflix_datapath)  # update the ._syftperm
-
-        return netflix_datapath
-
-    def create_public_folder(path: Path, client: Client, aggregator_path) -> None:
-        """
-        Create a API public folder within the specified path.
-
-        This function creates a directory for receiving the private enhanced version \
-        of the viewing history.
-        """
-
-        os.makedirs(path, exist_ok=True)
-
-        # Set default permissions for this folder
-        permissions = SyftPermission.datasite_default(email=client.email)
-        permissions.read.append(aggregator_path) # set read permission to the aggregator
-        permissions.save(path)
-
-    if profile:
-        restricted_public_folder = client.api_data(api_name) / profile
-    else:
-        restricted_public_folder = client.api_data(api_name)
-    create_public_folder(restricted_public_folder, client, aggregator_path)
-    private_folder = create_private_folder(client.datasite_path, client, profile)
-    return restricted_public_folder, private_folder
-
-def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple[str, np.ndarray]:
-    """
-    Ensure the latest Netflix data exists or download it if missing.
-    After retrieval, load the data into a NumPy array for further processing.
-
-    Returns:
-        np.ndarray: The latest Netflix viewing history as a structured array.
-    """
-    # Construct paths and file names
-    # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
-    datapath = os.path.join(output_dir, profile) if profile else output_dir
-    os.makedirs(datapath, exist_ok=True)
-
-    today_date = datetime.now().strftime("%Y-%m-%d")
-    netflix_csv_prefix = os.path.splitext(csv_name)[0]
-    
-    filename = f"{netflix_csv_prefix}_{today_date}.csv"
-    file_path = os.path.join(datapath, filename)
-    file_path_static = os.path.join(datapath, netflix_csv_prefix + ".csv")
-
-    static_file = None
-    try:
-        # Try to download the file using Chromedriver
-        try:
-            chromedriver_path = subprocess.check_output(['which', 'chromedriver'], text=True).strip()
-            os.environ['CHROMEDRIVER_PATH'] = chromedriver_path
-            if not os.path.exists(file_path):
-                print(f"Data file not found. Downloading to {file_path}...")
-                download_daily_data(datapath, filename, profile)
-                print(f"Successfully downloaded Netflix data to {file_path}.")
-            static_file = False
-            
-        except subprocess.CalledProcessError:
-            print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
-            print(f"Checking for a locally available static file: {file_path_static}...")
-            static_file = os.path.exists(file_path_static)
-            
-        except Exception as e:
-            print(f"{e}")
-
-            # Try to use the static file if downloading failed
-            if os.path.exists(file_path_static):
-                print(f"Using static viewing history (manually downloaded from Netflix): {file_path_static}...")
-                static_file = True
-            else:
-                print((
-                    f">> Neither ChromeDriver is available for download nor the static file exists. "
-                    f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
-                ))
-            
-                print(f">> Copying dummy file (data/dummy.csv) to {file_path_static}.")
-                try:
-                    with open('data/dummy.csv', 'rb') as src_file:
-                        with open(file_path_static, 'wb') as dest_file:
-                            dest_file.write(src_file.read())
-                    print(f">> Copied dummy file (data/dummy.csv) to {file_path_static}. For test purpose only!")
-                    static_file = True
-                except Exception as e: 
-                    print(f"[!] Error copying dummy file (data/dummy.csv) to {file_path_static}: {e}")
-                    sys.exit(1)
-
-    except Exception as e:
-        print(f"Error retrieving Netflix data: {e}")
-        raise
-
-    if static_file is None:
-        print("[!] Critical error: static_file is undefined!")
-        sys.exit(1)
-
-    if static_file:
-        latest_data_file = file_path_static
-    else:
-        latest_data_file = get_latest_file(datapath, csv_name)
-
-    # Load the CSV into a NumPy array
-    print(f"Loading data from {latest_data_file}...")
-    return latest_data_file, load_csv_to_numpy(latest_data_file)
 
 def run_federated_analytics(restricted_public_folder, private_folder, viewing_history):
     # Reduce and aggregate the original information
