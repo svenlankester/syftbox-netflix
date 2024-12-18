@@ -41,9 +41,12 @@ if __name__ == "__main__":
     
     # MLP use case -> FedAvg
     weights, biases = get_users_mlp_parameters(datasites_path, API_NAME, peers)    # MLP: retrieve the path to weights and bias
-    fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
-    joblib.dump(fedavg_weights, shared_folder_path / "netflix_mlp_fedavg_weights.joblib")
-    joblib.dump(fedavg_biases, shared_folder_path / "netflix_mlp_fedavg_biases.joblib")
+    try:
+        fedavg_weights, fedavg_biases = mlp_fedavg(weights, biases)
+        joblib.dump(fedavg_weights, shared_folder_path / "netflix_mlp_fedavg_weights.joblib")
+        joblib.dump(fedavg_biases, shared_folder_path / "netflix_mlp_fedavg_biases.joblib")
+    except Exception as e:
+        print(f"> Error to perform FedAvg: {e}")
 
     # Differential Privacy use case -> Top-5 Most Seen TV Series
     MIN_PARTICIPANTS = 3
