@@ -259,8 +259,8 @@ def main():
 
         # Run private processes and write to public/private/restricted directories
         run_federated_analytics(restricted_public_folder, private_folder, viewing_history)
-        run_federated_learning(AGGREGATOR_DATASITE, restricted_public_folder, private_folder, viewing_history, latest_data_file, client.datasite_path.parent)
-        run_top5_dp(private_folder / "tvseries_views_sparse_vector.npy", restricted_public_folder, verbose=False)
+        # run_federated_learning(AGGREGATOR_DATASITE, restricted_public_folder, private_folder, viewing_history, latest_data_file, client.datasite_path.parent)
+        # run_top5_dp(private_folder / "tvseries_views_sparse_vector.npy", restricted_public_folder, verbose=False)
         ##############
 
 if __name__ == "__main__":

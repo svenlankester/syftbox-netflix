@@ -6,8 +6,7 @@ import shutil
 from participant.server_utils.data_loading import (
     load_tv_vocabulary,
     load_imdb_ratings,
-    load_global_item_factors,
-    normalize_string
+    load_global_item_factors
 )
 
 class TestServerLoader(unittest.TestCase):
@@ -23,7 +22,7 @@ class TestServerLoader(unittest.TestCase):
 
         # Mock data
         self.tv_vocab = {"show1": 0, "show2": 1}
-        self.imdb_ratings = {"show1": 8.5, "show2": 9.0}
+        self.imdb_ratings = {"Show1": 8.5, "show2": 9.0}
         self.global_v = np.array([[0.21259355, 0.10947686, 0.28493529, 0.70217822],
                           [0.6644103,  0.05377649, 0.6423985,  0.1104549],
                           [0.48359202, 0.42244332, 0.66966578, 0.61169896]])
@@ -44,7 +43,7 @@ class TestServerLoader(unittest.TestCase):
 
     def test_load_imdb_ratings(self):
         loaded_ratings = load_imdb_ratings(self.imdb_ratings_path)
-        expected_ratings = {normalize_string(k): v for k, v in self.imdb_ratings.items()}
+        expected_ratings = {"show1": 8.5, "show2": 9.0} # Normalized keys
         self.assertEqual(loaded_ratings, expected_ratings)
 
     def test_load_global_item_factors(self):

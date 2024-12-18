@@ -184,7 +184,7 @@ def run_process():
     delta_V = {}
     for user_id in user_ids:
         # Fine-tuning of the item embeddings with user data
-        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False) #0.36
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False, dp_all=False) #0.36
 
     # # Dictionary to store all mocked user IDs and map them to original user IDs
     # mocked_to_original_mapping = {}
