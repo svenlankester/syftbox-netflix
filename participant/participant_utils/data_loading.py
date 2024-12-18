@@ -5,8 +5,11 @@ import numpy as np
 import csv
 from typing import Tuple
 from datetime import datetime
+from syftbox.lib import Client
 import subprocess
 from loaders.netflix_loader import download_daily_data, get_latest_file
+
+API_NAME = os.getenv("API_NAME")
 
 def load_tv_vocabulary(vocabulary_path):
     """
@@ -85,7 +88,15 @@ def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple
     # Construct paths and file names
     # datapath = os.path.expanduser(output_dir) # removed to work properly on macOS
     datapath = os.path.join(output_dir, profile) if profile else output_dir
-    os.makedirs(datapath, exist_ok=True)
+    
+    try:
+        os.makedirs(datapath, exist_ok=True)
+    except Exception as e:
+        print(f"[!] Error to define datapath, please define OUTPUT_DIR inside .env file. {e} ")
+        client = Client.load()
+        tmp_datapath = os.path.join(client.datasite_path, "private", API_NAME)
+        print(f"[!] Assuming private folder inside your datasite as datapath: {tmp_datapath}")
+        datapath = tmp_datapath
 
     today_date = datetime.now().strftime("%Y-%m-%d")
     netflix_csv_prefix = os.path.splitext(csv_name)[0]
@@ -93,7 +104,7 @@ def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple
     filename = f"{netflix_csv_prefix}_{today_date}.csv"
     file_path = os.path.join(datapath, filename)
     file_path_static = os.path.join(datapath, netflix_csv_prefix + ".csv")
-
+    
     static_file = None
     try:
         # Try to download the file using Chromedriver
@@ -106,13 +117,11 @@ def get_or_download_latest_data(output_dir, csv_name, profile:str=None) -> Tuple
                 print(f"Successfully downloaded Netflix data to {file_path}.")
             static_file = False
             
-        except subprocess.CalledProcessError:
-            print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download.")
-            print(f"Checking for a locally available static file: {file_path_static}...")
-            static_file = os.path.exists(file_path_static)
-            
         except Exception as e:
-            print(f"{e}")
+            print(f">> ChromeDriver not found. Unable to retrieve from Netflix via download: {e}")
+            print(f"Checking for a locally available static file: {file_path_static}...")
+            
+            static_file = os.path.exists(file_path_static)
 
             # Try to use the static file if downloading failed
             if os.path.exists(file_path_static):
