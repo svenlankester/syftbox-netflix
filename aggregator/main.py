@@ -13,6 +13,67 @@ from syftbox.lib import Client
 API_NAME = os.getenv("API_NAME")
 DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 
+def server_initialization(save_to:str, tv_series_path:str, imdb_ratings_path:str):
+    import numpy as np
+    from participant.server_utils.data_loading import load_tv_vocabulary, load_imdb_ratings
+    from participant.federated_learning.svd_server_initialisation import initialize_item_factors
+
+    def normalize_string(s):
+        """
+        """
+        return s.replace('\u200b', '').lower()
+
+    # Step 1: Load vocabulary and IMDB ratings
+    tv_vocab = load_tv_vocabulary(tv_series_path)
+    imdb_ratings = load_imdb_ratings(imdb_ratings_path)
+
+    # Step 2: Load and normalize IMDB ratings
+    imdb_data = np.load(imdb_ratings_path, allow_pickle=True).item()
+    imdb_ratings = {normalize_string(title): float(rating) for title, rating in imdb_data.items() if rating}
+
+    # Step 2: Initialize item factors
+    V = initialize_item_factors(tv_vocab, imdb_ratings)
+
+    # Step 4: Save the initialized model
+    os.makedirs(save_to, exist_ok=True)
+    np.save(os.path.join(save_to, "global_V.npy"), V)
+
+    print("Server initialization complete. Item factors (V) are saved.")
+
+def server_aggregate(updates, save_to, weights=None, learning_rate=1.0, epsilon=1.0, clipping_threshold=0.5):
+    """
+    Orchestrates the server aggregation process:
+    1. Loads current global item factors.
+    2. Calls `aggregate_item_factors` to perform the aggregation.
+    3. Saves the updated global item factors.
+
+    Args:
+        updates (list[dict]): List of delta dictionaries from participants.
+        weights (list[float]): List of weights for each participant. If None, equal weights are assumed.
+        learning_rate (float): Scaling factor for the aggregated deltas.
+        epsilon (float): Privacy budget for differential privacy.
+        clipping_threshold (float): Clipping threshold for updates.
+        save_to (str): Path to save the updated global item factors.
+    """
+    import numpy as np
+    from participant.server_utils.data_loading import load_global_item_factors
+    from participant.federated_learning.svd_server_aggregation import aggregate_item_factors
+    global_V_path = os.path.join(save_to, "global_V.npy")
+
+    # Step 1: Load current global item factors
+    V = load_global_item_factors(global_V_path)
+
+    # Step 2: Aggregate updates
+    V = aggregate_item_factors(
+        V, updates, weights=weights, learning_rate=learning_rate, epsilon=epsilon, clipping_threshold=clipping_threshold
+    )
+
+    # Step 3: Save the updated global item factors
+    os.makedirs(os.path.dirname(global_V_path), exist_ok=True)
+    np.save(global_V_path, V)
+
+    print("Server aggregation complete. Global item factors (V) updated.")
+
 if __name__ == "__main__":
     client = Client.load()
 
@@ -48,3 +109,9 @@ if __name__ == "__main__":
     if len(peers) > MIN_PARTICIPANTS:  # check the top-5 if at least MIN_PARTICIPANTS available
         dp_top5_series(datasites_path, peers, min_participants=MIN_PARTICIPANTS)
         # TODO: update assets -> static index
+
+    # Check if global V exists
+    if not os.path.exists(shared_folder_path / "global_V.npy"):
+        server_initialization(save_to=shared_folder_path, 
+                            tv_series_path=shared_folder_path / "tv-series_vocabulary.json", 
+                            imdb_ratings_path="data/imdb_ratings.npy")
