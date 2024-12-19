@@ -105,7 +105,6 @@ class NetflixFetcher:
         else:
             self.logger.info("Download file not found. Please check the download directory.")
 
-
     def close(self):
         """Close the WebDriver."""
         if self.driver:

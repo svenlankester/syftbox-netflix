@@ -39,17 +39,30 @@ class TestAggregateItemFactors(unittest.TestCase):
 
     def setUp(self):
         """Set up mock data for testing."""
-        self.V = np.random.rand(3, 4)  # Global item factors (3 items, latent dim 4)
+        # Set seed
+        np.random.seed(42)
+        self.V = np.array([[0.4, 1, 0.8, 0.6],
+            [0.7, 0.8, 0.8, 1.5],
+            [0.7, 0.9, 0.3, 1]])
+        
+        
+        np.random.rand(3, 4)  # Global item factors (3 items, latent dim 4)
         self.updates = [
             {0: np.array([0.1, 0.2, 0.3, 0.2]), 1: np.array([0.4, 0.5, 0.6, 0.9])},
             {1: np.array([0.7, 0.8, 0.9, 0.6]), 2: np.array([0.2, 0.3, 0.4, 0.1])},
         ]
 
-    def test_weighted_aggregation(self):
+    def test_aggregation_with_weighted_updates_sum_to_one(self):
         """Test aggregation with weighted updates."""
         weights = [0.3, 0.7]
-        updated_V = aggregate_item_factors(self.V, self.updates, weights=weights, learning_rate=1.0)
-        self.assertEqual(updated_V.shape, self.V.shape)
+        updated_V = aggregate_item_factors(self.V, self.updates, weights=weights, learning_rate=1.0, clipping_threshold=None, epsilon=None)
+
+        expected_V = np.array([[0.43, 1.06, 0.89, 0.66],
+                [1.31, 1.51, 1.61, 2.19],
+                [0.84, 1.11, 0.58, 1.07]])
+
+        # Test equality of updated_V and expected_V numpy arrays
+        np.testing.assert_almost_equal(updated_V, expected_V, decimal=6)
 
     def test_dp_noise_added(self):
         """Test that differential privacy noise is added."""

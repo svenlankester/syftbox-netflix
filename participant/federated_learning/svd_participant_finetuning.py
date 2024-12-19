@@ -62,7 +62,7 @@ def perform_local_training(train_data, initial_V, initial_U_u, alpha=0.01, lambd
             V[item_id] += alpha * V_i_grad
     return initial_V, V, U_u
 
-def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_threshold=None, noise_type="gaussian", save_path="mock_dataset_location/tmp_model_parms", plot=False):
+def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_threshold=None, noise_type="gaussian", save_path="mock_dataset_location/tmp_model_parms", plot=False, dp_all=False):
     """
     Orchestrator function for participant fine-tuning.
     """
@@ -87,8 +87,10 @@ def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_thre
 
     # Step 7: Compute and privatize deltas
     ids_training = [item_id for (_, item_id, _) in train_data]
-    delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for (_, item_id, _) in train_data}
-    # delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for item_id, _ in enumerate(initial_V)}
+    if dp_all:
+        delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for item_id, _ in enumerate(initial_V)}
+    else:
+        delta_V = {item_id: updated_V[item_id] - initial_V[item_id] for (_, item_id, _) in train_data}
     # delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values()) if i in ids_training]
     delta_norms_before = [np.linalg.norm(v) for i, v in enumerate(delta_V.values())]
 
@@ -103,10 +105,10 @@ def participant_fine_tuning(user_id, private_folder, epsilon=None, clipping_thre
 
     if plot:
         # Step 9: Plot delta distributions
-        # sorted_item_ids = sorted(delta_V.keys())
-        sorted_item_ids = range(0, len(ids_training))
+        sorted_item_ids = sorted(delta_V.keys())
+        # sorted_item_ids = range(0, len(ids_training))
         # plot_delta_distributions(user_id, delta_norms_before, delta_norms_after)
         plot_ratings_norm(user_id, sorted_item_ids, delta_norms_before, delta_norms_after)
 
     print(f"Participant {user_id} finished training and updated item factors.")
-    return delta_V
+    return dp_deltas

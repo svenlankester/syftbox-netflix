@@ -6,7 +6,7 @@ from participant.loaders.netflix_loader import (
     download_daily_data,
     get_latest_file,
 )
-from participant.main import (get_or_download_latest_data)
+from participant_utils.data_loading import get_or_download_latest_data
 
 class TestNetflixLoader(unittest.TestCase):
     @patch("participant.loaders.netflix_loader.NetflixFetcher")
@@ -44,11 +44,11 @@ class TestNetflixLoader(unittest.TestCase):
         self.assertEqual(result, expected_file)
         mock_listdir.assert_called_once_with(subfolder_path)
 
-    @patch("participant.main.get_latest_file")
-    @patch("participant.main.download_daily_data")
+    @patch("participant_utils.data_loading.get_latest_file")
+    @patch("participant_utils.data_loading.download_daily_data")
     @patch("os.path.exists")
-    @patch("participant.main.datetime")
-    @patch("participant.main.load_csv_to_numpy")
+    @patch("participant_utils.data_loading.datetime")
+    @patch("participant_utils.data_loading.load_csv_to_numpy")
     def test_get_or_download_latest_data_file_exists(self, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
         """
         Test when today's file already exists.
