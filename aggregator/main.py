@@ -47,4 +47,3 @@ if __name__ == "__main__":
     MIN_PARTICIPANTS = 3
     if len(peers) > MIN_PARTICIPANTS:  # check the top-5 if at least MIN_PARTICIPANTS available
         dp_top5_series(datasites_path, peers, min_participants=MIN_PARTICIPANTS)
-        # TODO: update assets -> static index

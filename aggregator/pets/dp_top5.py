@@ -81,19 +81,19 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
         if file.exists():
             available_dp_vectors.append(file)
 
-    # TODO: to check why some participants are not providing their dp vector
-    # if len(available_dp_vectors) < min_participants:  
-    print(f"{API_NAME} | Aggregator | There are no sufficient partcipants \
-              (Available: {len(available_dp_vectors)}| Required: {min_participants})")
-    # else:
-    destination_folder: Path = ( datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME )
-    vocab: Path = datasites_path / AGGREGATOR_DATASITE / "api_data" / API_NAME / "tv-series_vocabulary.json"
-    calculate_top5(available_dp_vectors, destination_folder, vocab)
-    
-    template_path = Path("./aggregator/assets/top5-series.html")
-    output_path = datasites_path / AGGREGATOR_DATASITE / "index.html"
+    if len(available_dp_vectors) < min_participants:  
+        print(f"{API_NAME} | Aggregator | There are no sufficient partcipants \
+                (Available: {len(available_dp_vectors)}| Required: {min_participants})")
+    else:
+        destination_folder: Path = ( datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME )
+        vocab: Path = datasites_path / AGGREGATOR_DATASITE / "api_data" / API_NAME / "tv-series_vocabulary.json"
+        calculate_top5(available_dp_vectors, destination_folder, vocab)
+        
+        template_path = Path("./aggregator/assets/top5-series.html")
+        output_path = datasites_path / AGGREGATOR_DATASITE / "index.html"
 
-    populate_html_template(destination_folder / "top5_series.json", template_path, output_path, len(available_dp_vectors))
+        populate_html_template(destination_folder / "top5_series.json", template_path, output_path, len(available_dp_vectors))
+
 
 def populate_html_template(json_path: Path, template_path: Path, output_path: Path, num_participants: int):
     """
