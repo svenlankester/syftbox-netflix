@@ -91,7 +91,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
     calculate_top5(available_dp_vectors, destination_folder, vocab)
     
     template_path = Path("./aggregator/assets/top5-series.html")
-    output_path = datasites_path / AGGREGATOR_DATASITE / "netflix" / "index.html"
+    output_path = datasites_path / AGGREGATOR_DATASITE / "index.html"
 
     populate_html_template(destination_folder / "top5_series.json", template_path, output_path, len(available_dp_vectors))
 
