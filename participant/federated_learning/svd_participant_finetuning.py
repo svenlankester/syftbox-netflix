@@ -30,17 +30,17 @@ def save_training_results(user_id, private_path, restricted_path, V, delta_V, U_
     os.makedirs(user_restricted_path, exist_ok=True)  # Ensure the user directory exists
 
     # Save updated V
-    participant_v_save_path = os.path.join(user_private_path, f"{user_id}_updated_V.npy")
-    participant_deltav_save_path = os.path.join(user_restricted_path, f"{user_id}_delta_V.npy")
+    participant_v_save_path = os.path.join(user_private_path, f"updated_V.npy")
+    participant_deltav_save_path = os.path.join(user_restricted_path, f"delta_V.npy")
     np.save(participant_v_save_path, V)
     np.save(participant_deltav_save_path, delta_V)
 
     # Write log in the restricted folder
-    with open(os.path.join(user_restricted_path, f"finetuning_succeed.txt"), "w") as f:
+    with open(os.path.join(user_restricted_path, f"local_finetuning_succeed.txt"), "w") as f:
         f.write(f"User {user_id} training results saved.")
 
     # Save updated user matrix
-    user_matrix_path = os.path.join(user_private_path, f"{user_id}_U.npy")
+    user_matrix_path = os.path.join(user_private_path, f"U.npy")
     np.save(user_matrix_path, U_u)
 
     print(f"Updated and saved private training results for user: {user_id} at {user_private_path}.")
@@ -74,8 +74,14 @@ def participant_fine_tuning(user_id, private_path, global_path, restricted_path,
     Orchestrator function for participant fine-tuning.
     """
     # Step 1: Load vocabulary
-    vocabulary_path = "aggregator/data/tv-series_vocabulary.json"
-    tv_vocab = load_tv_vocabulary(vocabulary_path)
+    try:
+        vocabulary_path = f"{global_path}/tv-series_vocabulary.json"
+        tv_vocab = load_tv_vocabulary(vocabulary_path)
+        print(f"Loaded TV series vocabulary from {vocabulary_path}.")
+    except FileNotFoundError:
+        vocabulary_path = "aggregator/data/tv-series_vocabulary.json"
+        tv_vocab = load_tv_vocabulary(vocabulary_path)
+        print(f"Loaded TV series vocabulary from {vocabulary_path}.")
 
     # Step 2: Load global item factors
     V = load_global_item_factors(global_path)

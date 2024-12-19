@@ -12,8 +12,8 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
         self.save_path = os.path.join(self.sandbox_dir, "tmp_model_parms")
         
         self.global_V_path = os.path.join(self.save_path, "global_V.npy")
-        self.participant_V_path = os.path.join(self.save_path, self.user_id, f"{self.user_id}_updated_V.npy")
-        self.user_matrix_path = os.path.join(self.save_path, self.user_id, f"{self.user_id}_U.npy")
+        self.participant_V_path = os.path.join(self.save_path, self.user_id, "updated_V.npy")
+        self.user_matrix_path = os.path.join(self.save_path, self.user_id, "U.npy")
 
         self.user_ratings = [
             ("show1", 12, 5, 4.5),  # Watched in week 12

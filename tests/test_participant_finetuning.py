@@ -25,9 +25,9 @@ class TestParticipantFineTuning(unittest.TestCase):
 
         # Declare input/output paths
         self.global_V_path = os.path.join(self.shared_path, "global_V.npy")
-        self.participant_V_path = os.path.join(self.private_folder, "svd_training", f"{self.user_id}_updated_V.npy")
-        self.user_matrix_path = os.path.join(self.private_folder, "svd_training", f"{self.user_id}_U.npy")
-        self.delta_V_path = os.path.join(self.restricted_path, "svd_training", f"{self.user_id}_delta_V.npy")
+        self.participant_V_path = os.path.join(self.private_folder, "svd_training", f"updated_V.npy")
+        self.user_matrix_path = os.path.join(self.private_folder, "svd_training", f"U.npy")
+        self.delta_V_path = os.path.join(self.restricted_path, "svd_training", f"delta_V.npy")
 
         # Mock data
         self.tv_vocab = {"show1": 0, "show2": 1}

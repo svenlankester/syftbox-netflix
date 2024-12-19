@@ -1,3 +1,6 @@
+# Currently not working as in development.
+# This is an exploratory process for functions that are being refactored into the main codebase.
+
 import os
 import json
 import numpy as np
@@ -81,7 +84,7 @@ def local_recommendation(user_id, tv_vocab, user_ratings, exclude_watched=True,
     # Step 1: Load data
     local_path = os.path.join(local_root_path, user_id)
     global_V_path = os.path.join(global_path, "global_V.npy")
-    user_U_path = os.path.join(local_path, f"{user_id}_U.npy")
+    user_U_path = os.path.join(local_path, "U.npy")
     
     user_U = np.load(user_U_path)
     global_V = np.load(global_V_path)
@@ -109,12 +112,13 @@ def run_process():
 
     client = Client.load()
 
+    restricted_shared_folders = {}
     restricted_public_folders = {}
     private_folders = {}
 
     for profile_id, profile in enumerate(netflix_profiles_list):
         profile_masked_name = f'profile_{profile_id}'
-        restricted_public_folders[profile_masked_name], private_folders[profile_masked_name] = setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile_masked_name)
+        restricted_shared_folders[profile_masked_name], restricted_public_folders[profile_masked_name], private_folders[profile_masked_name] = setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile_masked_name)
 
     ########################################
     # Step 0: Model Initialisation and Fine-Tuning
@@ -142,7 +146,7 @@ def run_process():
         global_path = "mock_dataset_location/tmp_model_parms"
         save_path="mock_dataset_location/tmp_model_parms"
         restricted_folder = private_folders[user_id]
-        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], restricted_folder, global_path, save_path, epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False, dp_all=False) #0.36
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], global_path, restricted_folder, epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False, dp_all=False) #0.36
 
     # # Dictionary to store all mocked user IDs and map them to original user IDs
     # mocked_to_original_mapping = {}
@@ -180,7 +184,7 @@ def run_process():
         tv_vocab = json.load(f)
 
     # Example user data
-    my_activity_path = os.path.join(restricted_public_folders[test_user], 'netflix_aggregated.npy')
+    my_activity_path = os.path.join(private_folders[test_user], 'netflix_aggregated.npy')
     my_activity = np.load(my_activity_path, allow_pickle=True) # Title, Week, Rating
 
     my_activity_formatted = np.empty(my_activity.shape, dtype=object)
