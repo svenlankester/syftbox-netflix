@@ -8,7 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from utils.vocab import create_tvseries_vocab
 from utils.frontend import populate_html_template
-from utils.syftbox import network_participants, create_shared_folder, participants_datasets
+from utils.syftbox import network_participants, create_shared_folder, participants_datasets, should_run
 from pets.svd_aggregator import svd_engine_init_and_aggregate
 from pets.svd_recommender import local_recommendation
 from pets.dp_top5 import dp_top5_series
@@ -50,6 +50,10 @@ svd_init = False
 
 
 if __name__ == "__main__":
+    if not should_run(60):
+        print(f"Skipping {API_NAME}, not enough time has passed.")
+        exit(0)
+
     try:
         client = Client.load()
         logging.info("Client loaded successfully.")
