@@ -49,7 +49,8 @@ class TestNetflixLoader(unittest.TestCase):
     @patch("os.path.exists")
     @patch("participant_utils.data_loading.datetime")
     @patch("participant_utils.data_loading.load_csv_to_numpy")
-    def test_get_or_download_latest_data_file_exists(self, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
+    @patch("participant_utils.data_loading.Client")
+    def test_get_or_download_latest_data_file_exists(self, mock_client, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
         """
         Test when today's file already exists.
         """
@@ -65,18 +66,24 @@ class TestNetflixLoader(unittest.TestCase):
         mock_exists.return_value = True
         mock_get_latest.return_value = file_path
 
+        # Mock Client and its datasite_path attribute
+        mock_client_instance = MagicMock()
+        mock_client_instance.datasite_path = "/mocked/datasite_path"
+        mock_client.load.return_value = mock_client_instance
+
         result = get_or_download_latest_data(output_dir, csv_name)
 
         mock_download.assert_not_called()
-        mock_get_latest.assert_called_once_with(output_dir, csv_name)
+        mock_get_latest.assert_called_once_with("/mocked/datasite_path/private/syftbox-netflix", csv_name) # Need to improve this test
         mock_load_csv_to_numpy.assert_called_once_with(file_path)
 
-    @patch("participant.main.get_latest_file")
-    @patch("participant.main.download_daily_data")
+    @patch("participant_utils.data_loading.get_latest_file")
+    @patch("participant_utils.data_loading.download_daily_data")
     @patch("os.path.exists")
-    @patch("participant.main.datetime")
-    @patch("participant.main.load_csv_to_numpy")
-    def test_get_or_download_latest_data_file_missing(self, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
+    @patch("participant_utils.data_loading.datetime")
+    @patch("participant_utils.data_loading.load_csv_to_numpy")
+    @patch("participant_utils.data_loading.Client")
+    def test_get_or_download_latest_data_file_missing(self, mock_client, mock_load_csv_to_numpy, mock_datetime, mock_exists, mock_download, mock_get_latest):
         """
         Test when today's file does not exist, and download is triggered.
         """
@@ -92,10 +99,15 @@ class TestNetflixLoader(unittest.TestCase):
         mock_exists.return_value = False
         mock_get_latest.return_value = file_path
 
+        # Mock Client and its datasite_path attribute
+        mock_client_instance = MagicMock()
+        mock_client_instance.datasite_path = "/mocked/datasite_path"
+        mock_client.load.return_value = mock_client_instance
+
         result = get_or_download_latest_data(output_dir, csv_name)
 
         mock_download.assert_called_once()
-        mock_get_latest.assert_called_once_with(output_dir, csv_name)
+        mock_get_latest.assert_called_once_with("/mocked/datasite_path/private/syftbox-netflix", csv_name)
         mock_load_csv_to_numpy.assert_called_once_with(file_path)
 
 if __name__ == "__main__":

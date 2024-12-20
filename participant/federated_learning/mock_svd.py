@@ -77,14 +77,11 @@ def server_aggregate(updates, save_to, weights=None, learning_rate=1.0, epsilon=
     print("Server aggregation complete. Global item factors (V) updated.")
 
 
-def local_recommendation(user_id, tv_vocab, user_ratings, exclude_watched=True,
-                         global_path="mock_dataset_location/tmp_model_parms",
-                         local_root_path="mock_dataset_location/tmp_model_parms"):
+def local_recommendation(local_path, global_path, tv_vocab, user_ratings, exclude_watched=True):
     """Main entry point for local recommendation generation."""
     # Step 1: Load data
-    local_path = os.path.join(local_root_path, user_id)
     global_V_path = os.path.join(global_path, "global_V.npy")
-    user_U_path = os.path.join(local_path, "U.npy")
+    user_U_path = os.path.join(local_path, "svd_training", "U.npy")
     
     user_U = np.load(user_U_path)
     global_V = np.load(global_V_path)
@@ -94,7 +91,7 @@ def local_recommendation(user_id, tv_vocab, user_ratings, exclude_watched=True,
 
     # Step 3: Write or return recommendations
     print("Recommended based on most recently watched:")
-    for i, (show, score) in enumerate(recommendations):
+    for i, (show, showid, score) in enumerate(recommendations):
         print(f"\t{i+1} => {show}: {score:.4f}")
     return recommendations
 
@@ -125,28 +122,28 @@ def run_process():
     ########################################
 
     # Clear folder
-    fldr_base = "mock_dataset_location/tmp_model_parms"
+    global_path = "mock_dataset_location/tmp_aggregator"
+    participant_path = "mock_dataset_location/tmp_participant"
     user_ids = list(private_folders.keys())
     # user_ids = netflix_profiles_list[:-1] # Exclude the last user for testing
 
     for user_id in user_ids:
-        fldr_user = os.path.join(fldr_base, user_id)
+        fldr_user = os.path.join(participant_path, user_id)
         if os.path.exists(fldr_user):
             shutil.rmtree(fldr_user)
 
     # Server initialisation
-    server_initialization(save_to="mock_dataset_location/tmp_model_parms", 
+    server_initialization(save_to=global_path, 
                            tv_series_path="aggregator/data/tv-series_vocabulary.json", 
                            imdb_ratings_path="data/imdb_ratings.npy")
-    backup_global_v = np.load("mock_dataset_location/tmp_model_parms/global_V.npy") # For analytics
+    backup_global_v = np.load(f"{global_path}/global_V.npy") # For analytics
 
     delta_V = {}
     for user_id in user_ids:
         # Fine-tuning of the item embeddings with user data
-        global_path = "mock_dataset_location/tmp_model_parms"
-        save_path="mock_dataset_location/tmp_model_parms"
-        restricted_folder = private_folders[user_id]
-        delta_V[user_id] = participant_fine_tuning(user_id, private_folders[user_id], global_path, restricted_folder, epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False, dp_all=False) #0.36
+        restricted_folder = f"mock_dataset_location/tmp_participant/{user_id}"
+        private_folder = private_folders[user_id] # Actual participant data to load ratings...
+        delta_V[user_id] = participant_fine_tuning(user_id, private_folder, global_path, restricted_folder, epsilon=1, noise_type="gaussian", clipping_threshold=None, plot=False, dp_all=False) #0.36
 
     # # Dictionary to store all mocked user IDs and map them to original user IDs
     # mocked_to_original_mapping = {}
@@ -194,21 +191,22 @@ def run_process():
     my_activity_formatted[:, 3] = my_activity[:, 3].astype(float)  # Ratings as float
 
     print("Vanilla Recommendations (IMDB)...")
-    top_6 = local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted)
+    participant_private_path = participant_path
+    participant_private_path = private_folders[test_user]
+    top_6 = local_recommendation(participant_private_path, global_path, tv_vocab, my_activity_formatted, exclude_watched=True)
 
     print("Updating Global Model with user deltas...")
     # Server aggregation
     # server_aggregate([delta_V[user_ids[0]], delta_V[user_ids[1]]])
     delta_V_list = list(delta_V.values())
-    save_path="mock_dataset_location/tmp_model_parms"
-    server_aggregate(delta_V_list, save_to=save_path, epsilon=None, clipping_threshold=None)
+    server_aggregate(delta_V_list, save_to=global_path, epsilon=None, clipping_threshold=None)
 
     print("Federated Recommendations (IMDB)...")
-    top_6 = local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted)
+    top_6 = local_recommendation(participant_private_path, global_path, tv_vocab, user_ratings=my_activity_formatted)
 
 
     # Logs
-    global_V_path = os.path.join(save_path, "global_V.npy")
+    global_V_path = os.path.join(global_path, "global_V.npy")
     global_V = np.load(global_V_path)
     print("Global V shape:", global_V.shape)
 
@@ -278,19 +276,19 @@ def run_process():
     # Let's say the user picks a show not in top_5, e.g., "Pedro Páramo" is re-watched or a new title "100 Humans".
     # For demonstration:
     user_new_choice = top_6[-1][0]
-    if user_new_choice not in [t for (t, _) in top_6[:5]]:
+    if user_new_choice not in [t for (t, _, _) in top_6[:5]]:
         print(f"\nUser selected '{user_new_choice}' which was not in the top 5 predictions.")
 
     # Let's assume the user watched and implicitly "rated" it.
     # Row to append
-    new_rating = 3.6
+    new_rating = 4.3
     new_row = np.array([user_new_choice, 47, 1, new_rating], dtype=object)
     my_activity_formatted = np.vstack([my_activity_formatted, new_row])
 
     print(f"---->Mock user activity updated with the new show={user_new_choice} and rating={new_rating}.")
 
     # print("Recalculating recommendations after user interaction to verify consistency...")
-    # top_6 = local_recommendation(user1_id, tv_vocab, user_ratings=my_activity_formatted)
+    # top_6 = local_recommendation(participant_private_path, global_path, tv_vocab, user_ratings=my_activity_formatted)
 
     # We now have an additional data point. The user updates their model locally.
 
@@ -299,9 +297,8 @@ def run_process():
     ########################################
 
     # Load model parameters
-    load_from = "mock_dataset_location/tmp_model_parms"
-    local_U_path = os.path.join(load_from, test_user, f"{test_user}_U.npy")
-    global_V_path = os.path.join(load_from, "global_V.npy")
+    local_U_path = os.path.join(participant_private_path, "svd_training", "U.npy")
+    global_V_path = os.path.join(global_path, "global_V.npy")
 
     local_U = np.load(local_U_path)
     global_V = np.load(global_V_path)
@@ -366,12 +363,13 @@ def run_process():
     # - Apply the delta to the corresponding item_id
 
     # Mock server aggregation:
-    save_to = "mock_dataset_location/tmp_model_parms"
-    os.makedirs(save_to, exist_ok=True)
+    os.makedirs(global_path, exist_ok=True)
 
     # Mock server load:
-    server_global_V = np.load(os.path.join(save_to, "global_V.npy"))
-    server_local_U = np.load(os.path.join(save_to, test_user, f"{test_user}_U.npy"))
+    global_V_path = os.path.join(global_path, "global_V.npy")
+    local_U_path = os.path.join(participant_private_path, "svd_training", "U.npy")
+    server_global_V = np.load(global_V_path)
+    server_local_U = np.load(local_U_path)
 
     # If we added a new item not previously in server_global_V, we need to align the dimensions.
     # Assume server_global_V shape: [N_items, k]
@@ -386,8 +384,8 @@ def run_process():
     server_global_V[new_item_id] += delta_V
 
     # Save updated global parameters:
-    np.save(os.path.join(save_to, test_user, f"{test_user}_U.npy"), server_local_U)
-    np.save(os.path.join(save_to, "global_V.npy"), server_global_V)
+    np.save(local_U_path, server_local_U)
+    np.save(global_V_path, server_global_V)
 
     print("\nServer: Applied client delta updates to global parameters and re-saved.")
 
@@ -396,7 +394,7 @@ def run_process():
 
     ### Re-run local recommendation to see if the new item is now recommended
     print("Recalculating recommendations after user interaction and model update to verify consistency...")
-    local_recommendation(test_user, tv_vocab, user_ratings=my_activity_formatted[:-1])
+    local_recommendation(participant_private_path, global_path, tv_vocab, user_ratings=my_activity_formatted[:-1])
 
 
 if __name__ == "__main__":

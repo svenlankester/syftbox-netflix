@@ -152,7 +152,7 @@ def main(profile, profile_id):
     if os.path.exists(finetuned_flag_path):
         logging.info(f"Fine-tuning already completed for {profile_masked_name}.")
     else:
-        logging.warning(f"Fine-tuning not completed for {profile_masked_name}. Starting process...")
+        logging.warning(f"Fine-tuning not yet triggered for {profile_masked_name}. Starting process...")
         logging.info(f"Starting SVD Recommendation Engine fine-tuning process for {profile_masked_name}...")
         participant_fine_tuning(
             profile_id, private_folder, restricted_shared_folder, restricted_public_folder,
