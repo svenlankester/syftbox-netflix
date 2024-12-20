@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
             top_series_path: Path = ( client.datasite_path / "private" / API_NAME / "top5_series.json")
             template_path = Path("./aggregator/assets/top5-series.html")
-            output_path = client.datasite_path / "index.html"
+            output_path = client.datasite_path / "public" / "index.html"
 
         except Exception as e:
             logging.error(f"An unexpected error occurred during DP Top-5 computation: {e}")
