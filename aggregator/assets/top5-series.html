@@ -17,6 +17,25 @@
             text-align: center;
             padding: 1rem 0;
             font-size: 1.5rem;
+            position: relative;
+            font-size: 1.5rem;
+        }
+        .more-info-btn {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            background-color: white;
+            color: #e50914;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .more-info-btn:hover {
+            background-color: #ffd1d1;
         }
         .container {
             display: flex;
@@ -81,11 +100,45 @@
         .repository a:hover {
             text-decoration: underline;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <header>
         Netflix #30DaysOfFLCode
+        <button class="more-info-btn" id="openModalBtn">More Info</button>
     </header>
     <div class="container">
         <div class="headline">The Top 5 Most Seen Series by Participants</div>
@@ -108,6 +161,44 @@
             <p>Inspired by the <strong>#30DaysOfFLCode</strong> challenge and supported by <a href="https://openmined.org" target="_blank">OpenMined</a>.</p>
         </div>
     </div>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>To Join Netflix App:</h2>
+            <ol>
+                <li><strong>Run SyftBox:</strong><br>
+                    <code>curl -LsSf https://syftbox.openmined.org/install.sh | sh</code>
+                </li>
+                <li><strong>Install Netflix App:</strong><br>
+                    <code>syftbox app install gubertoli/syftbox-netflix</code>
+                </li>
+            </ol>
+            <p><strong>Repository:</strong> <a href="https://github.com/gubertoli/syftbox-netflix" target="_blank">https://github.com/gubertoli/syftbox-netflix</a></p>
+            <p><strong>To get your viewing history:</strong> <a href="https://help.netflix.com/en/node/101917" target="_blank">https://help.netflix.com/en/node/101917</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Modal functionality
+        const modal = document.getElementById("myModal");
+        const openBtn = document.getElementById("openModalBtn");
+        const closeBtn = document.querySelector(".close");
+
+        openBtn.onclick = () => {
+            modal.style.display = "block";
+        };
+
+        closeBtn.onclick = () => {
+            modal.style.display = "none";
+        };
+
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        };
+    </script>
 
 </body>
 </html>
