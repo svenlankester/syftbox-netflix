@@ -8,7 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from utils.vocab import create_tvseries_vocab
 from utils.frontend import populate_html_template
-from utils.syftbox import network_participants, create_shared_folder, participants_datasets, should_run
+from utils.syftbox import network_participants, create_shared_folder, participants_datasets
 from pets.svd_aggregator import svd_engine_init_and_aggregate
 from pets.svd_recommender import local_recommendation
 from pets.dp_top5 import dp_top5_series
