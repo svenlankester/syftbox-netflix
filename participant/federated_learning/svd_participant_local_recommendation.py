@@ -3,12 +3,12 @@ def normalize_string(s):
     """
     return s.replace('\u200b', '').lower()
 
-def compute_recommendations(user_U, global_V, tv_vocab, user_ratings, recent_week=12, exclude_watched=True):
+def compute_recommendations(user_U, global_V, tv_vocab, user_aggregated_activity, recent_week=51, exclude_watched=True):
     """Compute recommendations based on user preferences and recent activity."""
     print("Selecting recommendations based on most recent shows watched...")
     
     # Extract recent items
-    recent_items = [title for (title, week, n_watched, rating) in user_ratings if week == recent_week]
+    recent_items = [title for (title, week, n_watched, rating) in user_aggregated_activity if int(week) == recent_week]
     recent_item_ids = [tv_vocab[title] for title in recent_items if title in tv_vocab]
     print("For week (of all years)", recent_week, "watched n_shows=:", len(recent_items))
     
@@ -23,7 +23,7 @@ def compute_recommendations(user_U, global_V, tv_vocab, user_ratings, recent_wee
 
     # Prepare candidate items
     all_items = list(tv_vocab.keys())
-    watched_titles = set(normalize_string(t) for (t, _, _, _) in user_ratings)
+    watched_titles = set(normalize_string(t) for (t, _, _, _) in user_aggregated_activity)
     if exclude_watched:
         candidate_items = [title for title in all_items if normalize_string(title) not in watched_titles]
     else:
@@ -34,7 +34,7 @@ def compute_recommendations(user_U, global_V, tv_vocab, user_ratings, recent_wee
     for title in candidate_items:
         item_id = tv_vocab[title]
         pred_rating = U_recent.dot(global_V[item_id])
-        predictions.append((title, pred_rating))
+        predictions.append((title, item_id, pred_rating))
 
-    predictions.sort(key=lambda x: x[1], reverse=True)
-    return predictions[:6]  # Return top 6 recommendations
+    predictions.sort(key=lambda x: x[2], reverse=True)
+    return predictions[:5]  # Return top 5 recommendations

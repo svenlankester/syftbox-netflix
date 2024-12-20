@@ -66,7 +66,6 @@ def calculate_top5(files: list[Path], destination_folder: Path, vocab: Path):
     except Exception as e:
         print(f"> Error: Unable to save the JSON. Error: {e}")
 
-
 def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int):
     """
     Retrieves the path of all available participants with DP vectors of TV series seens episodes.
@@ -102,64 +101,10 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
     if len(available_dp_vectors) < min_participants:  
         print(f"{API_NAME} | Aggregator | There are no sufficient partcipants \
                 (Available: {len(available_dp_vectors)}| Required: {min_participants})")
+        return len(available_dp_vectors)
     else:
         destination_folder: Path = ( datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME )
         vocab: Path = datasites_path / AGGREGATOR_DATASITE / "api_data" / API_NAME / "shared" / "tv-series_vocabulary.json"
         calculate_top5(available_dp_vectors, destination_folder, vocab)
-        
-        template_path = Path("./aggregator/assets/top5-series.html")
-        output_path = datasites_path / AGGREGATOR_DATASITE / "index.html"
 
-        populate_html_template(destination_folder / "top5_series.json", template_path, output_path, len(available_dp_vectors))
-
-
-def populate_html_template(json_path: Path, template_path: Path, output_path: Path, num_participants: int):
-    """
-    Populates an HTML template with data from a JSON file and saves the result.
-
-    Args:
-        json_path (Path): Path to the JSON file containing the top series data.
-        template_path (Path): Path to the HTML template file.
-        output_path (Path): Path to save the populated HTML file.
-    """
-    try:
-        # Load the JSON data
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        # Load the HTML template
-        with open(template_path, 'r', encoding='utf-8') as f:
-            html_template = f.read()
-
-        # Generate the series cards
-        series_cards = ""
-        for item in data:
-            series_cards += f"""
-            <div class="series-item">
-                <img width="110" height="155" src="{item['img']}" alt="{item['name']}">
-                <div><strong>{item['name']}</strong></div>
-                <p>Language: {item['language']}</p>
-                <p>Rating: {item['rating']}</p>
-                <p>IMDB: {item['imdb']}</p>
-            </div>
-            """
-
-        # Replace the placeholder in the template
-        populated_html = html_template.replace(
-            '<!-- Top 5 most viewed series will be populated dynamically -->', 
-            series_cards
-        )
-
-        populated_html = populated_html.replace(
-            'Total of Participants: #',
-            'Total of Participants: ' + str(num_participants)
-        )
-
-        # Save the populated HTML
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(populated_html)
-
-        print(f"Populated HTML saved to {output_path}")
-
-    except Exception as e:
-        print(f"Error: {e}")
+    return len(available_dp_vectors)
