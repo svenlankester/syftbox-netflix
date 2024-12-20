@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from datetime import datetime
 
 def populate_html_template(json_path: Path, template_path: Path, output_path: Path, num_participants: int, recommendations: list = None):
     """
@@ -59,9 +60,10 @@ def populate_html_template(json_path: Path, template_path: Path, output_path: Pa
             recommended_cards
         )
 
+        current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M')
         populated_html = populated_html.replace(
             'Total of Participants: #',
-            'Total of Participants: ' + str(num_participants)
+            f'Total of Participants: {num_participants} | Last Update: {current_datetime}'
         )
 
         # Save the populated HTML

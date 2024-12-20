@@ -81,10 +81,11 @@
             font-style: italic;
         }
         .total-participants {
-            margin: 1rem 0;
-            font-size: 1rem;
-            text-align: center;
-            color: #333;
+            position: absolute;
+            top: 60px; 
+            right: 1rem;
+            font-size: 0.9rem;
+            color: #555555;
         }
         .repository {
             text-align: center;
@@ -139,14 +140,14 @@
     <header>
         Netflix #30DaysOfFLCode
         <button class="more-info-btn" id="openModalBtn">More Info</button>
+        <div class="total-participants">
+            Total of Participants: #
+        </div>
     </header>
     <div class="container">
         <div class="headline">The Top 5 Most Seen Series by Participants</div>
         <div class="top-series-row" id="top-series-row">
             <!-- Top 5 most viewed series will be populated dynamically -->
-        </div>
-        <div class="total-participants">
-            Total of Participants: #
         </div>
 
         <div class="headline">The Top 5 Recommended Shows From Your Community Activity</div>
