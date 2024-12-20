@@ -50,10 +50,7 @@ svd_init = False
 
 
 if __name__ == "__main__":
-    if not should_run(60):
-        print(f"Skipping {API_NAME}, not enough time has passed.")
-        exit(0)
-
+    
     try:
         client = Client.load()
         logging.info("Client loaded successfully.")

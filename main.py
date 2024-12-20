@@ -45,7 +45,7 @@ def run_execution_context(client):
     if client.email == AGGREGATOR_DATASITE:
 
         # Skip execution if conditions are not met
-        if not should_run(1):
+        if not should_run(60):
             print(f"Skipping {API_NAME} as Aggregator, not enough time has passed.")
             exit(0)
 
@@ -53,16 +53,17 @@ def run_execution_context(client):
         subprocess.run([sys.executable, "aggregator/main.py"])
         print(f">> {API_NAME} | Aggregator execution complete.")
 
-    # Run participant (aggregator is a participant too)
-    # Skip execution if conditions are not met
-    if not should_run(interval=1):
-        print(f"Skipping {API_NAME} as Participant, not enough time has passed.")
-        sys.exit(0)
+    else:
+        # Run participant (aggregator is a participant too)
+        # Skip execution if conditions are not met
+        if not should_run(interval=1):
+            print(f"Skipping {API_NAME} as Participant, not enough time has passed.")
+            sys.exit(0)
 
-    for profile_id, profile in enumerate(NETFLIX_PROFILES.split(",")):
-        print(f">> {API_NAME} | Running as participant with profile_id: {profile_id}.")
-        subprocess.run([sys.executable, "participant/main.py", "--profile", profile, "--profile_id", str(profile_id)])
-    sys.exit(0)
+        for profile_id, profile in enumerate(NETFLIX_PROFILES.split(",")):
+            print(f">> {API_NAME} | Running as participant with profile_id: {profile_id}.")
+            subprocess.run([sys.executable, "participant/main.py", "--profile", profile, "--profile_id", str(profile_id)])
+        sys.exit(0)
 
 ## ==================================================================================================
 ## Orchestrator
