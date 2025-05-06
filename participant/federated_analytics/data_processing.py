@@ -14,12 +14,23 @@ def extract_titles(history: np.ndarray) -> np.ndarray:
 
 def convert_dates_to_weeks(history: np.ndarray) -> np.ndarray:
     """
-    Convert viewing dates to ISO week numbers.
+    Convert viewing dates to ISO week numbers, handling multiple date formats.
     """
-    return np.array([
-        datetime.strptime(date, "%d/%m/%Y").isocalendar()[1]
-        for date in history[:, 1]
-    ])
+    possible_formats = [
+        "%d/%m/%Y",  # e.g., 27/04/2025
+        "%m/%d/%y",  # e.g., 4/27/25
+    ]
+
+    def parse_date(date_str):
+        for fmt in possible_formats:
+            try:
+                return datetime.strptime(date_str, fmt).isocalendar()[1]
+            except ValueError:
+                continue
+        raise ValueError(f"Unsupported date format: {date_str}")
+
+    return np.array([parse_date(date) for date in history[:, 1]])
+
 
 def orchestrate_reduction(history: np.ndarray) -> np.ndarray:
     """
