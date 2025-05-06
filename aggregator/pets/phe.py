@@ -1,6 +1,8 @@
 import base64
 import json
 import numpy as np
+import logging
+import utils.logging_setup
 from phe import paillier
 from pathlib import Path
 
@@ -13,7 +15,7 @@ def generate_keys(public_path: Path, private_path: Path):
     private_key_file = private_path / "private_phe_key.json"
     
     if public_key_file.exists() and private_key_file.exists():
-        print("PHE Keys already exist. Skipping key generation.")
+        logging.debug("[phe.py] PHE Keys already exist. Skipping key generation.")
         return
     
     public_key, private_key = paillier.generate_paillier_keypair()
