@@ -26,7 +26,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-# ANSI escape codes for colors
+# A ANSI escape codes for colors
 COLORS = {
     "DEBUG": "\033[94m",  # Blue
     "INFO": "\033[92m",   # Green
@@ -39,12 +39,16 @@ class ColoredFormatter(logging.Formatter):
     def format(self, record):
         color = COLORS.get(record.levelname, COLORS["RESET"])
         reset = COLORS["RESET"]
-        record.msg = f"{color}{record.msg}{reset}"
-        return super().format(record)
+        message = super().format(record)
+        #return f"{color}{message}{reset}"
+        return f"{message}"
 
-# Apply the colored formatter
-for handler in logging.getLogger().handlers:
-    handler.setFormatter(ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logger.handlers = [console_handler]
 
 # Load environment variables
 load_dotenv()
