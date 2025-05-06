@@ -2,8 +2,6 @@
 
 This project is a proof of concept utilizing [SyftBox](https://syftbox-documentation.openmined.org/) from [OpenMined](https://openmined.org/) to process 🔒 private data. The use case focuses on analyzing the [Netflix viewing history](https://help.netflix.com/en/node/101917) provided by users. This effort is part of the [#30DaysOfFLCode](https://info.openmined.org/30daysofflcode) initiative.
 
-> ✋ If you are interested in joining this work, check out the Matchmaking spreadsheet for #30DaysOfFLCode [here](https://docs.google.com/spreadsheets/d/1euxZMxQXwctjRt_MVLqnqkuBqpXKuGagLReYANXj1i8/edit?gid=78639164#gid=78639164).
-
 [![Join OpenMined on Slack](https://img.shields.io/badge/Join%20Us%20on-Slack-blue)](https://slack.openmined.org/)
 
 ## 🎯 Goals
@@ -20,8 +18,42 @@ The primary aim is to apply 🛡️ privacy-enhancing technologies to derive agg
 ## Installation & Requirements
 **_Tested on Linux and macOS._**
 
-### 1. Install ChromeDriver
-To retrieve your Netflix viewing history automatically:
+Download your Netflix viewing activity as a CSV file from your Netflix account. See [How to download your Netflix viewing history](https://help.netflix.com/en/node/101917). Once downloaded, place the CSV file into the folder specified by the `OUTPUT_DIR` variable in your `.env` file. 
+
+If you have data from **multiple profiles**, save each profile's CSV in its own subfolder within `OUTPUT_DIR`:
+
+```bash
+OUTPUT_DIR/
+├── profile_0/
+│   └── ViewingActivity.csv
+├── profile_1/
+│   └── ViewingActivity.csv
+└── ...
+
+```
+
+### 1. Start SyftBox
+Install and start SyftBox by running this command:
+
+   ```bash
+   curl -LsSf https://syftbox.openmined.org/install.sh | sh
+   ```
+### 2. Install app on SyftBox
+From terminal, once SyftBox is running:
+   ```bash
+   syftbox app install gubertoli/syftbox-netflix
+   ```
+
+### 3. Set Up the Environment
+Configure this app inside SyftBox.
+
+1. Navigate to the `syftbox-netflix` directory:
+   ```bash
+   cd /SyftBox/apps/syftbox-netflix
+   ```
+2. Open the `.env` file in a text editor and **define at least** `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. 
+
+Optionally, fill in your Netflix account information to automate viewing history retrieval. For this option, you need the ChromeDriver.
 
 - **For macOS:**
   ```bash
@@ -33,30 +65,19 @@ To retrieve your Netflix viewing history automatically:
    sudo apt-get install chromium-driver
    ```
 
-> **Note:** If you prefer, you can skip this step and manually download your Netflix viewing history as a CSV. See [How to download your Netflix viewing history](https://help.netflix.com/en/node/101917). Once downloaded, place the CSV file in the `OUTPUT_DIR` specified in the `.env` file.
-
-### 2. Start SyftBox
-Install and start SyftBox by running this command:
-
-   ```bash
-   curl -LsSf https://syftbox.openmined.org/install.sh | sh
+#### A more complete `.env` example:
    ```
-### 3. Install app on SyftBox
-From terminal, once SyftBox is running:
-   ```bash
-   syftbox app install gubertoli/syftbox-netflix
+   API_NAME="syftbox-netflix"
+   AGGREGATOR_DATASITE="<aggregator-datasite-email>"
+   NETFLIX_EMAIL="<your-netflix-email@provider.com>"
+   NETFLIX_PASSWORD="<your-password>"
+   NETFLIX_PROFILE="<profile-name>"
+   NETFLIX_CSV="NetflixViewingHistory.csv"
+   OUTPUT_DIR="/home/<your-username>/Downloads/"
+   AGGREGATOR_DATA_DIR="data/"
    ```
 
-### 4. Set Up the Environment
-Configure this app inside SyftBox.
-
-1. Navigate to the `syftbox-netflix` directory:
-   ```bash
-   cd /SyftBox/apis/syftbox-netflix
-   ```
-2. Open the `.env` file in a text editor and **define at least** `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. Optionally, fill in your Netflix account information to automate viewing history retrieval.
-
-### Data format (Netflix)
+# Viewing History Data format (Netflix)
 The data provided by Netflix (Viewing History) is a comma-separated file (CSV), organized by Title and Date:
 
    ```
@@ -64,6 +85,9 @@ The data provided by Netflix (Viewing History) is a comma-separated file (CSV), 
    "Show Name: Season X: Episode Name","DD/MM/YYYY"
    ...
    ```
+
+   > :warning: The retrieved data might be in the format `MM/DD/YY`. The current implementation is capable of both, if your viewing history has other data format, changes are needed.
 ---
+
 
 Feel free to reach out with questions or suggestions to improve this project.
