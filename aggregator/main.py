@@ -4,6 +4,7 @@ import os
 import numpy as np
 import joblib
 import logging
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from utils.vocab import create_tvseries_vocab
@@ -15,12 +16,6 @@ from pets.dp_top5 import dp_top5_series
 from pets.phe import generate_keys
 from syftbox.lib import Client
 
-# Set up logging
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.DEBUG,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 
 # ANSI escape codes for colors
 COLORS = {
@@ -35,12 +30,16 @@ class ColoredFormatter(logging.Formatter):
     def format(self, record):
         color = COLORS.get(record.levelname, COLORS["RESET"])
         reset = COLORS["RESET"]
-        record.msg = f"{color}{record.msg}{reset}"
-        return super().format(record)
+        message = super().format(record)
+        #return f"{color}{message}{reset}"
+        return f"{message}"
 
-# Apply the colored formatter to all handlers
-for handler in logging.getLogger().handlers:
-    handler.setFormatter(ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logger.handlers = [console_handler]
 
 # Load environment variables
 load_dotenv()
