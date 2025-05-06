@@ -2,6 +2,8 @@ import json
 import os
 import numpy as np
 import pandas as pd
+import logging
+import utils.logging_setup
 from pathlib import Path
 
 API_NAME = os.getenv("API_NAME")
@@ -79,6 +81,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
         
         if file.exists():
             # Backwards compatibility - No profile hierarchy
+            logging.debug(f"[dp_top5.py] Retrieving top5 series DP data from {peer}...")
             available_dp_vectors.append(file)
         else:
             # Current version - Profile hierarchy
@@ -93,7 +96,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
                 profile_file = dir / profile / dp_file
                 
                 if not profile_file.exists():
-                    print(f"DP file not found for {profile}. Skipping...")
+                    logging.debug(f"[dp_top5.py] DP file not found for {profile} in {peer} datasite. Skipping...")
                     continue
                     
                 available_dp_vectors.append(profile_file)
