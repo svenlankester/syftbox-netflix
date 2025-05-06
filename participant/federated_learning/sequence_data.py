@@ -3,6 +3,7 @@ import re
 import json
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from pathlib import Path
 from rapidfuzz import process
 
@@ -15,6 +16,17 @@ class SequenceData:
         self.dataset = dataset
         self.aggregated_data = self.process_dataset()
 
+
+    def parse_date_str(self, date_str):
+        formats = ['%d/%m/%Y', '%m/%d/%y']
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        return pd.NaT
+    
+
     def extract_features(self, df):
         # Extract show name and season from title
         df['show'] = df['Title'].apply(lambda x: x.split(':')[0] if ':' in x else x)
@@ -22,7 +34,7 @@ class SequenceData:
             int(re.search(r'Season (\d+)', x).group(1)) if re.search(r'Season (\d+)', x) else 0)
         
         # Convert date strings to datetime objects
-        df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
+        df['Date'] = df['Date'].apply(self.parse_date_str)
         
         # Extract temporal features
         df['day_of_week'] = df['Date'].dt.dayofweek
