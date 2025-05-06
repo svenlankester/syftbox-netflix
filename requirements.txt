@@ -1,4 +1,4 @@
-syftbox>=0.1.5
+syft-core
 python-dotenv==1.0.1
 pandas
 rapidfuzz
