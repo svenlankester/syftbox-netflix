@@ -55,9 +55,14 @@ def create_shared_folder(path: Path, api_name:str, client: Client, participants:
     os.makedirs(shared_datapath, exist_ok=True)
 
     # Set the default permissions
-    permissions = SyftPermission.datasite_default(email=client.email)
+    permissions = SyftPermission.datasite_default(context=client, dir=shared_datapath)
+
     for participant in participants: # set read permission to participants
-        permissions.read.append(participant)
-    permissions.save(shared_datapath)  # update the ._syftperm
+        permissions.add_rule(
+            path="**",
+            user=participant,
+            permission="read"
+        )
+    permissions.save(shared_datapath)  # update the syftperm.yaml (previously ._syftperm)
 
     return shared_datapath
