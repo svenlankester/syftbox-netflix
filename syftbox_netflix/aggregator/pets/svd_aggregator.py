@@ -4,11 +4,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ...federated_learning.svd_server_aggregation import aggregate_item_factors
-from ...federated_learning.svd_server_initialisation import (
+from syftbox_netflix.federated_learning.svd_server_aggregation import aggregate_item_factors
+from syftbox_netflix.federated_learning.svd_server_initialisation import (
     initialize_item_factors,
 )
-from ...server_utils.data_loading import (
+from syftbox_netflix.server_utils.data_loading import (
     load_global_item_factors,
     load_imdb_ratings,
     load_tv_vocabulary,
