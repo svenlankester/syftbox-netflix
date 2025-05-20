@@ -57,7 +57,7 @@ def setup_environment(client, api_name, aggregator_path, profile):
 
     datasites_path = Path(client.datasite_path.parent)
     restricted_shared_folder = Path(
-        datasites_path / aggregator_path / "api_data" / api_name / "shared"
+        datasites_path / aggregator_path / "app_data" / api_name / "shared"
     )
     restricted_public_folder = client.app_data(api_name) / profile
 
