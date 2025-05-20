@@ -8,10 +8,14 @@ from syftbox_netflix.aggregator.utils.logging_setup import logger
 
 print(logger)
 
-def create_tvseries_vocab(shared_folder: Path):
+def create_tvseries_vocab(shared_folder: Path, zip_file_path = None):
     # TODO: retrieve most up-to-date file, currently is loading a static file with Netflix series
 
-    zip_file = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
+    if not zip_file_path:
+        zip_file = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
+    else:
+        zip_file = zip_file_path
+
     logging.debug(f"[vocab.py] Loading {zip_file}...")
     
     df = pd.read_csv(zip_file)
@@ -21,7 +25,8 @@ def create_tvseries_vocab(shared_folder: Path):
 
     vocab_mapping = {title: idx for idx, title in enumerate(label_encoder.classes_)}
     
-    output_path = os.path.join(str(shared_folder), "tv-series_vocabulary.json")
-    with open(output_path, 'w', encoding='utf-8') as f:
+    output_path = Path(shared_folder) / "tv-series_vocabulary.json"
+    with output_path.open('w', encoding='utf-8') as f:
         json.dump(vocab_mapping, f, ensure_ascii=False, indent=4)
+        
     return vocab_mapping

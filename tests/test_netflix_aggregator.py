@@ -142,7 +142,7 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         with zipfile.ZipFile(zip_file_path, "w") as zipf:
             zipf.write(csv_file_path, arcname=csv_file_path.name)
 
-        create_tvseries_vocab(SHARED_FOLDER)
+        create_tvseries_vocab(SHARED_FOLDER, zip_file_path)
 
         with open(vocab_file_path, "r", encoding="utf-8") as f:
             vocab_mapping = json.load(f)
