@@ -1,11 +1,19 @@
 import json
 import os
+import logging
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from pathlib import Path
+from syftbox_netflix.aggregator.utils.logging_setup import logger
+
+print(logger)
 
 def create_tvseries_vocab(shared_folder: Path):
-    zip_file = os.path.join(os.getcwd(), "aggregator", "data", "netflix_series_2024-12.csv.zip")  # TODO: retrieve most up-to-date file
+    # TODO: retrieve most up-to-date file, currently is loading a static file with Netflix series
+
+    zip_file = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
+    logging.debug(f"[vocab.py] Loading {zip_file}...")
+    
     df = pd.read_csv(zip_file)
 
     label_encoder = LabelEncoder()
