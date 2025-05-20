@@ -12,7 +12,7 @@ def create_tvseries_vocab(shared_folder: Path, zip_file_path = None):
     # TODO: retrieve most up-to-date file, currently is loading a static file with Netflix series
 
     if not zip_file_path:
-        zip_file = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2025-05.csv.zip")
+        zip_file = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
     else:
         zip_file = zip_file_path
 
