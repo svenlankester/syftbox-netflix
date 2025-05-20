@@ -58,7 +58,7 @@ logger.handlers = [console_handler]
 load_dotenv()
 API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
-CSV_NAME = os.getenv("NETFLIX_CSV")
+CSV_NAME = os.getenv("NETFLIX_CSV", "NetflixViewingHistory.csv")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", ".")
 
 
