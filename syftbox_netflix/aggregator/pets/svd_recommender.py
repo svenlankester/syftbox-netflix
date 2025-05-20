@@ -12,7 +12,7 @@ logging.basicConfig(
 
 def local_recommendation(local_path, global_path, tv_vocab, exclude_watched=True):
     """Main entry point for local recommendation generation."""
-    from participant.federated_learning.svd_participant_local_recommendation import compute_recommendations
+    from syftbox_netflix.federated_learning.svd_participant_local_recommendation import compute_recommendations
 
     # Step 1: Load data
     global_V_path = os.path.join(global_path, "global_V.npy")
@@ -32,7 +32,7 @@ def local_recommendation(local_path, global_path, tv_vocab, exclude_watched=True
 
     # Step 3: Write or return recommendations
     # Enhance data
-    csv_file_path = "./aggregator/data/netflix_series_2024-12.csv.zip"
+    csv_file_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
     try:
         df = pd.read_csv(csv_file_path, compression='zip')
     except Exception as e:
