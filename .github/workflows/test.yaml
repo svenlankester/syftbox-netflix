@@ -28,14 +28,8 @@ jobs:
           pip install pytest
 
       - name: Create .env file
-        run: echo 'API_NAME="syftbox-netflix"
-          AGGREGATOR_DATASITE="gubertoli@gmail.com"
-          AGGREGATOR_DATA_DIR="data/"
-          # NETFLIX_PROFILE="Name,BQKFA5RBXFBVZNPBHEAOPHXXXA"
-          #NETFLIX_EMAIL="<your-netflix-email@provider.com>"
-          #NETFLIX_PASSWORD="<your-password>"
-          #NETFLIX_CSV="NetflixViewingHistory.csv"
-          #OUTPUT_DIR="/home/<your-username>/Downloads/"' > .env
+        run: |
+          echo 'API_NAME="syftbox-netflix" AGGREGATOR_DATASITE="gubertoli@gmail.com" AGGREGATOR_DATA_DIR="data/"' > .env
 
       - name: Create config.json
         run: |
