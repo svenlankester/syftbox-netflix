@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 from datetime import datetime
 
@@ -53,10 +52,9 @@ def run_execution_context(client):
             exit(0)
 
         print(f">> {API_NAME} | Running as aggregator.")
-        subprocess.run(
-            [sys.executable, "aggregator/main.py"],
-            env=os.environ.copy(),
-        )
+        from syftbox_netflix.aggregator.main import main as aggregator_main
+        aggregator_main()
+
         print(f">> {API_NAME} | Aggregator execution complete.")
 
     else:
