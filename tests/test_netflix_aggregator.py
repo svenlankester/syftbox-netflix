@@ -130,8 +130,8 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         )
 
         mock_getcwd.return_value = PROJECT_DIR
-        zip_file_path = Path(DATA_DIR) / "netflix_series_2024-12.csv.zip"
-        csv_file_path = Path(DATA_DIR) / "netflix_series_2024-12.csv"
+        zip_file_path = Path(DATA_DIR) / "netflix_series_2025-05.csv.zip"
+        csv_file_path = Path(DATA_DIR) / "netflix_series_2025-05.csv"
         vocab_file_path = Path(SHARED_FOLDER) / "tv-series_vocabulary.json"
 
         Path(DATA_DIR).mkdir(parents=True, exist_ok=True)

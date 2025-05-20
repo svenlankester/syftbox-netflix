@@ -45,7 +45,7 @@ def calculate_top5(files: list[Path], destination_folder: Path, vocab: Path):
     top5_names = [index_to_name[idx] for idx in top5_indices]
     top5_values = series_totals[top5_indices]
 
-    csv_file_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2024-12.csv.zip")
+    csv_file_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "data", "netflix_series_2025-05.csv.zip")
 
     try:
         df = pd.read_csv(csv_file_path, compression="zip")
