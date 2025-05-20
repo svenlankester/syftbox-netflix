@@ -56,7 +56,7 @@ logger.handlers = [console_handler]
 
 # Load environment variables
 load_dotenv()
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 CSV_NAME = os.getenv("NETFLIX_CSV")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", ".")

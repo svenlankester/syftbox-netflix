@@ -11,7 +11,7 @@ from syft_core import SyftClientConfig
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
 
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 CSV_NAME = os.getenv("NETFLIX_CSV")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR")

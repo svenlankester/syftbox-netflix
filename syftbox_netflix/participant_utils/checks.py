@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 
 
 def should_run(interval=1) -> bool:
