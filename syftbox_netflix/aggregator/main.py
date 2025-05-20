@@ -5,19 +5,19 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pets.dp_top5 import dp_top5_series
-from pets.phe import generate_keys
-from pets.svd_aggregator import svd_engine_init_and_aggregate
-from pets.svd_recommender import local_recommendation
+from syftbox_netflix.aggregator.pets.dp_top5 import dp_top5_series
+from syftbox_netflix.aggregator.pets.phe import generate_keys
+from syftbox_netflix.aggregator.pets.svd_aggregator import svd_engine_init_and_aggregate
+from syftbox_netflix.aggregator.pets.svd_recommender import local_recommendation
 from syft_core import Client as SyftboxClient
 from syft_core import SyftClientConfig
-from utils.frontend import populate_html_template
-from utils.syftbox import (
+from syftbox_netflix.aggregator.utils.frontend import populate_html_template
+from syftbox_netflix.aggregator.utils.syftbox import (
     create_shared_folder,
     network_participants,
     participants_datasets,
 )
-from utils.vocab import create_tvseries_vocab
+from syftbox_netflix.aggregator.utils.vocab import create_tvseries_vocab
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +26,7 @@ DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 svd_init = False
 
 
-if __name__ == "__main__":
+def main():
     try:
         config = SyftClientConfig.load()
         client = SyftboxClient(config)
@@ -81,7 +81,8 @@ if __name__ == "__main__":
             top_series_path: Path = (
                 client.datasite_path / "private" / API_NAME / "top5_series.json"
             )
-            template_path = Path("./aggregator/assets/top5-series.html")
+            template_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "assets", "top5-series.html")
+            
             output_path = client.datasite_path / "public" / "index.html"
 
         except Exception as e:
