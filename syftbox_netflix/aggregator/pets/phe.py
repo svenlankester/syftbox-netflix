@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from phe import paillier
 
-from .utils.logging_setup import logger
+from syftbox_netflix.aggregator.utils.logging_setup import logger
 
 print(logger)
 
