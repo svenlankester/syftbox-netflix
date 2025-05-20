@@ -1,16 +1,18 @@
-import unittest
-import os
 import json
-import numpy as np
+import os
 import shutil
-from participant.server_utils.data_loading import (
-    load_tv_vocabulary,
+import unittest
+
+import numpy as np
+
+from syftbox_netflix.server_utils.data_loading import (
+    load_global_item_factors,
     load_imdb_ratings,
-    load_global_item_factors
+    load_tv_vocabulary,
 )
 
-class TestServerLoader(unittest.TestCase):
 
+class TestServerLoader(unittest.TestCase):
     def setUp(self):
         # Setup sandbox environment
         self.sandbox_dir = "test_sandbox/server_loader"
@@ -23,9 +25,13 @@ class TestServerLoader(unittest.TestCase):
         # Mock data
         self.tv_vocab = {"show1": 0, "show2": 1}
         self.imdb_ratings = {"Show1": 8.5, "show2": 9.0}
-        self.global_v = np.array([[0.21259355, 0.10947686, 0.28493529, 0.70217822],
-                          [0.6644103,  0.05377649, 0.6423985,  0.1104549],
-                          [0.48359202, 0.42244332, 0.66966578, 0.61169896]])
+        self.global_v = np.array(
+            [
+                [0.21259355, 0.10947686, 0.28493529, 0.70217822],
+                [0.6644103, 0.05377649, 0.6423985, 0.1104549],
+                [0.48359202, 0.42244332, 0.66966578, 0.61169896],
+            ]
+        )
 
         # Write mock data
         with open(self.tv_series_path, "w") as f:
@@ -43,7 +49,7 @@ class TestServerLoader(unittest.TestCase):
 
     def test_load_imdb_ratings(self):
         loaded_ratings = load_imdb_ratings(self.imdb_ratings_path)
-        expected_ratings = {"show1": 8.5, "show2": 9.0} # Normalized keys
+        expected_ratings = {"show1": 8.5, "show2": 9.0}  # Normalized keys
         self.assertEqual(loaded_ratings, expected_ratings)
 
     def test_load_global_item_factors(self):

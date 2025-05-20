@@ -13,24 +13,7 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# Load environment variables from .env
-echo "Loading environment variables from .env..."
-export $(grep -v '^#' .env | xargs)
-
-if [ ! -d ".venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
-    echo "Virtual environment created."
-fi
-
-. .venv/bin/activate
-
-echo "Installing dependencies..."
-pip install -r requirements.txt --quiet
-echo "Dependencies installed."
-
-pip install -e . --quiet
-
-python3 main.py
-
-deactivate
+rm -rf .venv
+uv venv -p 3.12
+uv pip install -e .
+uv run main.py

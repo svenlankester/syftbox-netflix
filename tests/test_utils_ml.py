@@ -1,14 +1,22 @@
-import unittest
-import pandas as pd
-import numpy as np
 import os
-from unittest.mock import patch
+import unittest
+from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from datetime import datetime
-from participant.federated_learning.mlp_model import extract_features, prepare_data, train_model, get_recommendation
-from participant.federated_learning.sequence_data import SequenceData
+
+from syftbox_netflix.federated_learning.mlp_model import (
+    extract_features,
+    get_recommendation,
+    prepare_data,
+    train_model,
+)
+from syftbox_netflix.federated_learning.sequence_data import SequenceData
+
 
 class TestMLRoutines(unittest.TestCase):
     @classmethod
@@ -45,17 +53,18 @@ class TestMLRoutines(unittest.TestCase):
 
         Includes dates with day > 12 to validate correct datetime parsing.
         """
-        self.dataset = np.array([
-            ["Show A: Season 1", "01/01/2023"], # Sunday
-            ["Show A: Season 1", "13/01/2023"], # Friday, Day > 12
-            ["Show B: Season 1", "25/01/2023"], # Wednesday, Day > 12
-            ["Show A: Season 2", "04/01/2023"], # Wednesday
-            ["Show C", "15/01/2023"],           # Sunday, Day > 12
-            ["Show B: Season 1", "26/01/2023"], # Thursday, Day > 12
-        ])
+        self.dataset = np.array(
+            [
+                ["Show A: Season 1", "01/01/2023"],  # Sunday
+                ["Show A: Season 1", "13/01/2023"],  # Friday, Day > 12
+                ["Show B: Season 1", "25/01/2023"],  # Wednesday, Day > 12
+                ["Show A: Season 2", "04/01/2023"],  # Wednesday
+                ["Show C", "15/01/2023"],  # Sunday, Day > 12
+                ["Show B: Season 1", "26/01/2023"],  # Thursday, Day > 12
+            ]
+        )
         df = pd.DataFrame(self.dataset, columns=["Title", "Date"])
         df.to_csv(self.file_path, index=False)
-
 
     def test_extract_features(self):
         """
@@ -73,9 +82,9 @@ class TestMLRoutines(unittest.TestCase):
         df = pd.DataFrame(
             [
                 ["Show A: Season 1", "13/01/2023"],  # Day > 12
-                ["Show B", "25/01/2023"],           # Day > 12
+                ["Show B", "25/01/2023"],  # Day > 12
                 ["Show A: Season 2", "03/01/2023"],
-                ["Show C", "15/01/2023"],           # Day > 12
+                ["Show C", "15/01/2023"],  # Day > 12
             ],
             columns=["Title", "Date"],
         )
@@ -188,7 +197,7 @@ class TestMLRoutines(unittest.TestCase):
         self.assertIsInstance(le_show, LabelEncoder)
         self.assertEqual(num_samples, len(self.dataset) - 1)
 
-    @patch("participant.federated_learning.mlp_model.get_current_day_of_week")
+    @patch("syftbox_netflix.federated_learning.mlp_model.get_current_day_of_week")
     def test_get_recommendation(self, mock_get_current_day_of_week):
         """
         Test the get_recommendation function for generating show recommendations.
@@ -198,11 +207,13 @@ class TestMLRoutines(unittest.TestCase):
             2. The recommendation aligns with the shows in the dataset based on day_of_week.
         """
         # Prepare mock data for training
-        X_mock = np.array([
-            [0, 1, 6],  # Show A, Season 1, Sunday
-            [1, 2, 0],  # Show B, Season 2, Monday
-            [2, 3, 1],  # Show C, Season 3, Tuesday
-        ])
+        X_mock = np.array(
+            [
+                [0, 1, 6],  # Show A, Season 1, Sunday
+                [1, 2, 0],  # Show B, Season 2, Monday
+                [2, 3, 1],  # Show C, Season 3, Tuesday
+            ]
+        )
         y_mock = np.array([1, 2, 0])  # Encoded target: next show
 
         # Train MLP model
@@ -233,8 +244,12 @@ class TestMLRoutines(unittest.TestCase):
                 recommendation = get_recommendation(mlp, scaler, le_show, last_watched)
 
                 # Assertions
-                self.assertIn(recommendation, ["Show A", "Show B", "Show C"])  # Validate recommendation is in dataset
-                self.assertEqual(recommendation, expected_recommendation)  # Validate correct recommendation
+                self.assertIn(
+                    recommendation, ["Show A", "Show B", "Show C"]
+                )  # Validate recommendation is in dataset
+                self.assertEqual(
+                    recommendation, expected_recommendation
+                )  # Validate correct recommendation
 
 
 if __name__ == "__main__":

@@ -1,11 +1,15 @@
-import unittest
-import os
-from unittest.mock import patch
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import json
-from participant.federated_learning.sequence_data import match_title, create_view_counts_vector
+import os
+import unittest
+
+import numpy as np
+import pandas as pd
+
+from syftbox_netflix.federated_learning.sequence_data import (
+    create_view_counts_vector,
+    match_title,
+)
+
 
 class TestDataProcessingViewCountVectors(unittest.TestCase):
     def test_match_title(self):
@@ -46,11 +50,13 @@ class TestDataProcessingViewCountVectors(unittest.TestCase):
             "Top Gear": 2,
             "South Park": 3,
         }
-        aggregated_data = pd.DataFrame({
-            "show": ["Top Gear", "South Park", "Top Gear", "Unknown Show"],
-            "Total_Views": [6, 18, 4, 5],
-            "First_Seen": ["2012-09-30", "2012-10-21", "2012-09-30", "2013-01-01"],
-        })
+        aggregated_data = pd.DataFrame(
+            {
+                "show": ["Top Gear", "South Park", "Top Gear", "Unknown Show"],
+                "Total_Views": [6, 18, 4, 5],
+                "First_Seen": ["2012-09-30", "2012-10-21", "2012-09-30", "2013-01-01"],
+            }
+        )
 
         sandbox_dir = "test_sandbox/aggregator_datasite"
         shared_path = os.path.join(sandbox_dir, "shared")

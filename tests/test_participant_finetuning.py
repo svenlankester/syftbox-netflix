@@ -1,21 +1,25 @@
 import os
 import shutil
 import unittest
+
 import numpy as np
-from participant.federated_learning.svd_participant_finetuning import (
-    save_training_results,
+
+from syftbox_netflix.federated_learning.svd_participant_finetuning import (
+    perform_local_training,
     prepare_training_data,
-    perform_local_training
+    save_training_results,
 )
 
-class TestParticipantFineTuning(unittest.TestCase):
 
+class TestParticipantFineTuning(unittest.TestCase):
     def setUp(self):
         # Setup sandboxed test environment
         self.sandbox_dir = "test_sandbox/participant_datasite"
         self.user_id = "test_user"
         self.shared_path = os.path.join(self.sandbox_dir, "shared")
-        self.restricted_path = os.path.join(self.sandbox_dir, "restricted", self.user_id)
+        self.restricted_path = os.path.join(
+            self.sandbox_dir, "restricted", self.user_id
+        )
         self.private_folder = os.path.join(self.sandbox_dir, "private", self.user_id)
 
         # Create sandbox directories
@@ -25,9 +29,15 @@ class TestParticipantFineTuning(unittest.TestCase):
 
         # Declare input/output paths
         self.global_V_path = os.path.join(self.shared_path, "global_V.npy")
-        self.participant_V_path = os.path.join(self.private_folder, "svd_training", f"updated_V.npy")
-        self.user_matrix_path = os.path.join(self.private_folder, "svd_training", f"U.npy")
-        self.delta_V_path = os.path.join(self.restricted_path, "svd_training", f"delta_V.npy")
+        self.participant_V_path = os.path.join(
+            self.private_folder, "svd_training", "updated_V.npy"
+        )
+        self.user_matrix_path = os.path.join(
+            self.private_folder, "svd_training", "U.npy"
+        )
+        self.delta_V_path = os.path.join(
+            self.restricted_path, "svd_training", "delta_V.npy"
+        )
 
         # Mock data
         self.tv_vocab = {"show1": 0, "show2": 1}
@@ -47,7 +57,9 @@ class TestParticipantFineTuning(unittest.TestCase):
 
     def test_prepare_training_data(self):
         # Prepare training data
-        train_data = prepare_training_data(self.user_id, self.tv_vocab, self.final_ratings)
+        train_data = prepare_training_data(
+            self.user_id, self.tv_vocab, self.final_ratings
+        )
 
         # Expected result
         expected_data = [
@@ -58,7 +70,9 @@ class TestParticipantFineTuning(unittest.TestCase):
 
     def test_perform_local_training(self):
         # Prepare training data
-        train_data = prepare_training_data(self.user_id, self.tv_vocab, self.final_ratings)
+        train_data = prepare_training_data(
+            self.user_id, self.tv_vocab, self.final_ratings
+        )
 
         # Perform training
         initial_V_returned, updated_V, updated_U_u = perform_local_training(
@@ -74,7 +88,14 @@ class TestParticipantFineTuning(unittest.TestCase):
 
     def test_save_training_results(self):
         # Save training results
-        save_training_results(self.user_id, self.private_folder, self.restricted_path, self.V, self.final_ratings, self.U_u)
+        save_training_results(
+            self.user_id,
+            self.private_folder,
+            self.restricted_path,
+            self.V,
+            self.final_ratings,
+            self.U_u,
+        )
 
         # Check that the files exist
         self.assertTrue(os.path.exists(self.participant_V_path))
@@ -84,5 +105,7 @@ class TestParticipantFineTuning(unittest.TestCase):
         # Validate the saved data
         np.testing.assert_array_equal(np.load(self.participant_V_path), self.V)
         saved_delta = np.load(self.delta_V_path, allow_pickle=True).item()
-        self.assertEqual(saved_delta.keys(), self.final_ratings.keys())  # Check keys match
+        self.assertEqual(
+            saved_delta.keys(), self.final_ratings.keys()
+        )  # Check keys match
         np.testing.assert_array_equal(np.load(self.user_matrix_path), self.U_u)
