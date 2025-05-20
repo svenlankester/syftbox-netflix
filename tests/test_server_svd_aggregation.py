@@ -1,13 +1,22 @@
 import os
 import shutil
 import unittest
+from unittest import mock
+
 import numpy as np
-from unittest.mock import patch, mock_open, MagicMock
-from participant.federated_learning.mock_svd import server_aggregate
-from participant.federated_learning.svd_server_aggregation import validate_weights, normalize_weights, clip_updates, add_differential_privacy_noise, aggregate_item_factors, calculate_aggregated_delta
+
+from syftbox_netflix.federated_learning.mock_svd import server_aggregate
+from syftbox_netflix.federated_learning.svd_server_aggregation import (
+    add_differential_privacy_noise,
+    aggregate_item_factors,
+    calculate_aggregated_delta,
+    clip_updates,
+    normalize_weights,
+    validate_weights,
+)
+
 
 class TestServerAggregate(unittest.TestCase):
-
     def setUp(self):
         """Set up sandbox environment and mock data."""
         self.sandbox_dir = "test_sandbox/server_aggregate"
@@ -35,17 +44,16 @@ class TestServerAggregate(unittest.TestCase):
         updated_V = np.load(self.global_V_path)
         self.assertEqual(updated_V.shape, self.V.shape)
 
-class TestAggregateItemFactors(unittest.TestCase):
 
+class TestAggregateItemFactors(unittest.TestCase):
     def setUp(self):
         """Set up mock data for testing."""
         # Set seed
         np.random.seed(42)
-        self.V = np.array([[0.4, 1, 0.8, 0.6],
-            [0.7, 0.8, 0.8, 1.5],
-            [0.7, 0.9, 0.3, 1]])
-        
-        
+        self.V = np.array(
+            [[0.4, 1, 0.8, 0.6], [0.7, 0.8, 0.8, 1.5], [0.7, 0.9, 0.3, 1]]
+        )
+
         np.random.rand(3, 4)  # Global item factors (3 items, latent dim 4)
         self.updates = [
             {0: np.array([0.1, 0.2, 0.3, 0.2]), 1: np.array([0.4, 0.5, 0.6, 0.9])},
@@ -55,11 +63,22 @@ class TestAggregateItemFactors(unittest.TestCase):
     def test_aggregation_with_weighted_updates_sum_to_one(self):
         """Test aggregation with weighted updates."""
         weights = [0.3, 0.7]
-        updated_V = aggregate_item_factors(self.V, self.updates, weights=weights, learning_rate=1.0, clipping_threshold=None, epsilon=None)
+        updated_V = aggregate_item_factors(
+            self.V,
+            self.updates,
+            weights=weights,
+            learning_rate=1.0,
+            clipping_threshold=None,
+            epsilon=None,
+        )
 
-        expected_V = np.array([[0.43, 1.06, 0.89, 0.66],
+        expected_V = np.array(
+            [
+                [0.43, 1.06, 0.89, 0.66],
                 [1.31, 1.51, 1.61, 2.19],
-                [0.84, 1.11, 0.58, 1.07]])
+                [0.84, 1.11, 0.58, 1.07],
+            ]
+        )
 
         # Test equality of updated_V and expected_V numpy arrays
         np.testing.assert_almost_equal(updated_V, expected_V, decimal=6)
@@ -68,11 +87,13 @@ class TestAggregateItemFactors(unittest.TestCase):
         """Test that differential privacy noise is added."""
         epsilon = 1.0
         clipping_threshold = 1.0
-        updated_V = aggregate_item_factors(self.V, self.updates, epsilon=epsilon, clipping_threshold=clipping_threshold)
+        updated_V = aggregate_item_factors(
+            self.V, self.updates, epsilon=epsilon, clipping_threshold=clipping_threshold
+        )
         self.assertFalse(np.allclose(updated_V, self.V, atol=1e-4))
 
-class TestNormalizeWeights(unittest.TestCase):
 
+class TestNormalizeWeights(unittest.TestCase):
     def test_valid_weights(self):
         """Test valid weights."""
         weights = [0.3, 0.4, 0.3]
@@ -96,7 +117,9 @@ class TestNormalizeWeights(unittest.TestCase):
         try:
             validate_weights(None, num_participants=3)
         except ValueError:
-            self.fail("validate_weights raised ValueError unexpectedly for None weights!")
+            self.fail(
+                "validate_weights raised ValueError unexpectedly for None weights!"
+            )
 
     def test_normal_weights(self):
         """Test normalization of a list of positive weights."""
@@ -119,13 +142,13 @@ class TestNormalizeWeights(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_weights([0, 0, 0], num_participants=3)
 
-class TestClipUpdates(unittest.TestCase):
 
+class TestClipUpdates(unittest.TestCase):
     def setUp(self):
         """Set up mock updates for testing."""
         self.updates = [
             {0: np.array([0.5, 0.5]), 1: np.array([1.0, 1.0])},
-            {0: np.array([0.3, 0.4]), 1: np.array([2.0, 2.0])}
+            {0: np.array([0.3, 0.4]), 1: np.array([2.0, 2.0])},
         ]
 
     def test_clipping_applied(self):
@@ -151,8 +174,8 @@ class TestClipUpdates(unittest.TestCase):
         clipped = clip_updates([], clipping_threshold=1.0)
         self.assertEqual(clipped, [])
 
-class TestAddDifferentialPrivacyNoise(unittest.TestCase):
 
+class TestAddDifferentialPrivacyNoise(unittest.TestCase):
     def setUp(self):
         """Set up mock aggregated deltas for testing."""
         self.aggregated_delta = {
@@ -168,12 +191,14 @@ class TestAddDifferentialPrivacyNoise(unittest.TestCase):
         noised_delta = add_differential_privacy_noise(
             aggregated_delta=self.aggregated_delta,
             epsilon=epsilon,
-            clipping_threshold=clipping_threshold
+            clipping_threshold=clipping_threshold,
         )
 
         # Check that values differ from the original
         for item_id, original_delta in self.aggregated_delta.items():
-            self.assertFalse(np.allclose(noised_delta[item_id], original_delta, atol=1e-6))
+            self.assertFalse(
+                np.allclose(noised_delta[item_id], original_delta, atol=1e-6)
+            )
 
     def test_noise_scale(self):
         """Test that noise scale is calculated correctly."""
@@ -182,23 +207,25 @@ class TestAddDifferentialPrivacyNoise(unittest.TestCase):
         noise_scale = clipping_threshold / epsilon
 
         # Patch np.random.normal to validate its arguments
-        with unittest.mock.patch("numpy.random.normal") as mock_normal:
+        with mock.patch("numpy.random.normal") as mock_normal:
             mock_normal.return_value = np.zeros(2)  # Dummy noise
             add_differential_privacy_noise(
                 aggregated_delta=self.aggregated_delta,
                 epsilon=epsilon,
-                clipping_threshold=clipping_threshold
+                clipping_threshold=clipping_threshold,
             )
             # Ensure np.random.normal is called with correct scale
             mock_normal.assert_any_call(scale=noise_scale, size=(2,))
 
     def test_empty_aggregated_delta(self):
         """Test that an empty aggregated delta returns an empty result."""
-        noised_delta = add_differential_privacy_noise({}, epsilon=1.0, clipping_threshold=1.0)
+        noised_delta = add_differential_privacy_noise(
+            {}, epsilon=1.0, clipping_threshold=1.0
+        )
         self.assertEqual(noised_delta, {})
 
-class TestCalculateAggregatedDelta(unittest.TestCase):
 
+class TestCalculateAggregatedDelta(unittest.TestCase):
     def setUp(self):
         """Set up mock data for testing."""
         self.V = np.random.rand(3, 4)  # Global item factors (3 items, latent dim 4)
@@ -211,7 +238,9 @@ class TestCalculateAggregatedDelta(unittest.TestCase):
 
     def test_valid_updates(self):
         """Test valid updates with normalized weights."""
-        aggregated_delta = calculate_aggregated_delta(self.V, self.updates, self.normalized_weights, self.learning_rate)
+        aggregated_delta = calculate_aggregated_delta(
+            self.V, self.updates, self.normalized_weights, self.learning_rate
+        )
 
         # Validate that aggregated_delta has the correct structure
         self.assertEqual(len(aggregated_delta), len(self.V))
@@ -221,7 +250,9 @@ class TestCalculateAggregatedDelta(unittest.TestCase):
     def test_empty_updates(self):
         """Test that empty updates return zero deltas."""
         updates = []
-        aggregated_delta = calculate_aggregated_delta(self.V, updates, self.normalized_weights, self.learning_rate)
+        aggregated_delta = calculate_aggregated_delta(
+            self.V, updates, self.normalized_weights, self.learning_rate
+        )
 
         # Check that all aggregated deltas are zero
         for delta in aggregated_delta.values():
@@ -230,7 +261,9 @@ class TestCalculateAggregatedDelta(unittest.TestCase):
     def test_zero_weights(self):
         """Test that zero weights result in zero deltas."""
         weights = [0.0, 0.0]
-        aggregated_delta = calculate_aggregated_delta(self.V, self.updates, weights, self.learning_rate)
+        aggregated_delta = calculate_aggregated_delta(
+            self.V, self.updates, weights, self.learning_rate
+        )
 
         # Check that all aggregated deltas are zero
         for delta in aggregated_delta.values():
@@ -239,13 +272,21 @@ class TestCalculateAggregatedDelta(unittest.TestCase):
     def test_learning_rate_scaling(self):
         """Test that learning rate scales the aggregated deltas."""
         learning_rate = 2.0
-        aggregated_delta = calculate_aggregated_delta(self.V, self.updates, self.normalized_weights, learning_rate)
+        aggregated_delta = calculate_aggregated_delta(
+            self.V, self.updates, self.normalized_weights, learning_rate
+        )
 
         # Validate that deltas are scaled by the learning rate
-        expected_aggregated_delta = {item_id: np.zeros_like(self.V[0]) for item_id in range(len(self.V))}
+        expected_aggregated_delta = {
+            item_id: np.zeros_like(self.V[0]) for item_id in range(len(self.V))
+        }
         for i, delta_V in enumerate(self.updates):
             for item_id, delta in delta_V.items():
-                expected_aggregated_delta[item_id] += delta * self.normalized_weights[i] * learning_rate
+                expected_aggregated_delta[item_id] += (
+                    delta * self.normalized_weights[i] * learning_rate
+                )
 
         for item_id in expected_aggregated_delta:
-            np.testing.assert_array_almost_equal(aggregated_delta[item_id], expected_aggregated_delta[item_id], decimal=6)
+            np.testing.assert_array_almost_equal(
+                aggregated_delta[item_id], expected_aggregated_delta[item_id], decimal=6
+            )

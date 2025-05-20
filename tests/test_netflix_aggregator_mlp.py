@@ -7,22 +7,24 @@ This suite includes tests for various functionalities of the aggregator module, 
 - Vocabulary creation from TV series data
 """
 
-import unittest
-import numpy as np
-import joblib
 import shutil
+import unittest
 from pathlib import Path
-from aggregator.pets.fedavg_mlp import (
-    get_users_mlp_parameters,
-    extract_number,
-    weighted_average,
-    mlp_fedavg,
-)
 
+import joblib
+import numpy as np
+
+from syftbox_netflix.aggregator.pets.fedavg_mlp import (
+    extract_number,
+    get_users_mlp_parameters,
+    mlp_fedavg,
+    weighted_average,
+)
 
 API_NAME = "mock_api"
 DATA_DIR = "test_sandbox/aggregator/data"
 SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
+
 
 class TestAggregatorMain_MLP(unittest.TestCase):
     """
@@ -151,6 +153,7 @@ class TestAggregatorMain_MLP(unittest.TestCase):
 
         np.testing.assert_array_equal(fedavg_weights[0], expected_weights[0])
         np.testing.assert_array_equal(fedavg_biases[0], expected_biases[0])
+
 
 if __name__ == "__main__":
     unittest.main()
