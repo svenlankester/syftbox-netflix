@@ -1,18 +1,20 @@
+import json
 import os
 import shutil
 import unittest
+
 import numpy as np
-import json
-from participant.participant_utils.data_loading import (
-    load_tv_vocabulary,
-    load_participant_ratings,
+
+from syftbox_netflix.participant_utils.data_loading import (
+    initialize_user_matrix,
     load_global_item_factors,
     load_or_initialize_user_matrix,
-    initialize_user_matrix,
+    load_participant_ratings,
+    load_tv_vocabulary,
 )
 
-class TestLoadingFunctions(unittest.TestCase):
 
+class TestLoadingFunctions(unittest.TestCase):
     def setUp(self):
         # Setup sandboxed test environment
         self.sandbox_dir = "test_sandbox"
@@ -82,7 +84,9 @@ class TestLoadingFunctions(unittest.TestCase):
 
         # Load or initialize user matrix
         latent_dim = 10
-        U_u = load_or_initialize_user_matrix(self.user_id, latent_dim, save_path=self.save_path)
+        U_u = load_or_initialize_user_matrix(
+            self.user_id, latent_dim, save_path=self.save_path
+        )
 
         # Assert file was created
         self.assertTrue(os.path.exists(self.user_matrix_path))
@@ -97,7 +101,9 @@ class TestLoadingFunctions(unittest.TestCase):
         np.save(self.user_matrix_path, pre_saved_matrix)
 
         # Load or initialize user matrix
-        U_u = load_or_initialize_user_matrix(self.user_id, latent_dim, save_path=self.save_path)
+        U_u = load_or_initialize_user_matrix(
+            self.user_id, latent_dim, save_path=self.save_path
+        )
 
         # Assert loaded matrix matches pre-saved matrix
         np.testing.assert_array_equal(U_u, pre_saved_matrix)

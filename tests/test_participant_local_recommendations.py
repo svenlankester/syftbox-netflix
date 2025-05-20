@@ -1,15 +1,19 @@
 import os
-import shutil
 import unittest
+
 import numpy as np
-from participant.federated_learning.mock_svd import local_recommendation
+
+from syftbox_netflix.federated_learning.mock_svd import local_recommendation
+
 
 class TestParticipantLocalRecommendation(unittest.TestCase):
     def setUp(self):
         self.sandbox_dir = "test_sandbox/participant_datasite/local_recommendation"
         self.user_id = "test_user"
         self.shared_path = os.path.join(self.sandbox_dir, "shared")
-        self.restricted_path = os.path.join(self.sandbox_dir, "restricted", self.user_id)
+        self.restricted_path = os.path.join(
+            self.sandbox_dir, "restricted", self.user_id
+        )
         self.private_folder = os.path.join(self.sandbox_dir, "private", self.user_id)
 
         # Create sandbox directories
@@ -19,9 +23,15 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
 
         # Declare input/output paths
         self.global_V_path = os.path.join(self.shared_path, "global_V.npy")
-        self.participant_V_path = os.path.join(self.private_folder, "svd_training", f"updated_V.npy")
-        self.user_matrix_path = os.path.join(self.private_folder, "svd_training", f"U.npy")
-        self.delta_V_path = os.path.join(self.restricted_path, "svd_training", f"delta_V.npy")
+        self.participant_V_path = os.path.join(
+            self.private_folder, "svd_training", "updated_V.npy"
+        )
+        self.user_matrix_path = os.path.join(
+            self.private_folder, "svd_training", "U.npy"
+        )
+        self.delta_V_path = os.path.join(
+            self.restricted_path, "svd_training", "delta_V.npy"
+        )
 
         self.user_ratings = [
             ("show1", 12, 5, 4.5),  # Watched in week 12
@@ -44,16 +54,22 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
             user_ratings=self.user_ratings,
             exclude_watched=True,  # Test with watched shows excluded
         )
-        
+
         # Validate recommendations
-        self.assertEqual(len(recommendations), 2)  # Only non-watched items should be recommended
-        
+        self.assertEqual(
+            len(recommendations), 2
+        )  # Only non-watched items should be recommended
+
         # Validate top recommendations are sorted by predicted rating
         self.assertGreaterEqual(recommendations[0][2], recommendations[1][2])
-        
+
         # Check for a specific item if needed
-        self.assertIn("show3", [rec[0] for rec in recommendations])  # Ensure "show3" is recommended
-        self.assertIn("show4", [rec[0] for rec in recommendations])  # Ensure "show3" is recommended
+        self.assertIn(
+            "show3", [rec[0] for rec in recommendations]
+        )  # Ensure "show3" is recommended
+        self.assertIn(
+            "show4", [rec[0] for rec in recommendations]
+        )  # Ensure "show3" is recommended
 
     def test_no_recent_items(self):
         user_ratings = [
@@ -64,7 +80,7 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
             global_path=self.shared_path,
             tv_vocab=self.tv_vocab,
             user_ratings=user_ratings,
-            exclude_watched=True
+            exclude_watched=True,
         )
         self.assertGreater(len(recommendations), 0)  # Should still recommend something
 
@@ -80,7 +96,7 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
             global_path=self.shared_path,
             tv_vocab=self.tv_vocab,
             user_ratings=user_ratings,
-            exclude_watched=True
+            exclude_watched=True,
         )
         self.assertEqual(len(recommendations), 0)  # No recommendations possible
 
@@ -92,5 +108,5 @@ class TestParticipantLocalRecommendation(unittest.TestCase):
                 global_path=self.shared_path,
                 tv_vocab=self.tv_vocab,
                 user_ratings=self.user_ratings,
-                exclude_watched=True
+                exclude_watched=True,
             )

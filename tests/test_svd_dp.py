@@ -1,20 +1,18 @@
-import unittest
-from unittest.mock import patch, mock_open
-import numpy as np
-import os
-import json
-import matplotlib.pyplot as plt
 import copy
-from participant.federated_learning.svd_dp import (
-    get_noise_function,
+import unittest
+from unittest.mock import patch
+
+import numpy as np
+
+from syftbox_netflix.federated_learning.svd_dp import (
     apply_differential_privacy,
-    plot_delta_distributions,
     calculate_optimal_threshold,
-    clip_deltas
+    clip_deltas,
+    get_noise_function,
 )
 
-class TestCalculateOptimalThreshold(unittest.TestCase):
 
+class TestCalculateOptimalThreshold(unittest.TestCase):
     def setUp(self):
         self.delta_V = {
             0: np.array([0.1, 0.2, 0.3]),
@@ -24,20 +22,24 @@ class TestCalculateOptimalThreshold(unittest.TestCase):
 
     def test_mean_threshold(self):
         threshold = calculate_optimal_threshold(self.delta_V, method="mean")
-        expected_mean = np.mean([np.linalg.norm(delta) for delta in self.delta_V.values()])
+        expected_mean = np.mean(
+            [np.linalg.norm(delta) for delta in self.delta_V.values()]
+        )
         self.assertAlmostEqual(threshold, expected_mean, places=6)
 
     def test_median_threshold(self):
         threshold = calculate_optimal_threshold(self.delta_V, method="median")
-        expected_median = np.median([np.linalg.norm(delta) for delta in self.delta_V.values()])
+        expected_median = np.median(
+            [np.linalg.norm(delta) for delta in self.delta_V.values()]
+        )
         self.assertAlmostEqual(threshold, expected_median, places=6)
 
     def test_invalid_method(self):
         with self.assertRaises(ValueError):
             calculate_optimal_threshold(self.delta_V, method="invalid")
 
-class TestClipDeltas(unittest.TestCase):
 
+class TestClipDeltas(unittest.TestCase):
     def setUp(self):
         self.delta_V = {
             0: np.array([0.1, 0.2, 0.3]),
@@ -46,14 +48,18 @@ class TestClipDeltas(unittest.TestCase):
         }
 
     def test_manual_clipping_threshold(self):
-        clipped_deltas, used_threshold = clip_deltas(self.delta_V.copy(), clipping_threshold=0.5)
+        clipped_deltas, used_threshold = clip_deltas(
+            self.delta_V.copy(), clipping_threshold=0.5
+        )
 
         self.assertEqual(used_threshold, 0.5)
         for delta in clipped_deltas.values():
             self.assertLessEqual(np.linalg.norm(delta), 0.5)
 
     def test_auto_clipping_threshold_median(self):
-        clipped_deltas, used_threshold = clip_deltas(self.delta_V.copy(), method="median")
+        clipped_deltas, used_threshold = clip_deltas(
+            self.delta_V.copy(), method="median"
+        )
 
         norms = [np.linalg.norm(delta) for delta in self.delta_V.values()]
         expected_threshold = np.median(norms)
@@ -62,8 +68,8 @@ class TestClipDeltas(unittest.TestCase):
         for delta in clipped_deltas.values():
             self.assertLessEqual(np.linalg.norm(delta), used_threshold)
 
-class TestApplyDifferentialPrivacy(unittest.TestCase):
 
+class TestApplyDifferentialPrivacy(unittest.TestCase):
     def setUp(self):
         # Sample deltas
         self.delta_V = {
@@ -95,7 +101,9 @@ class TestApplyDifferentialPrivacy(unittest.TestCase):
         for noise_type in ["gaussian", "laplace"]:
             with self.subTest(noise_type=noise_type):
                 if noise_type == "gaussian":
-                    expected_scale = np.sqrt(2 * np.log(1.25 / 1e-5)) * (self.sensitivity / self.epsilon)
+                    expected_scale = np.sqrt(2 * np.log(1.25 / 1e-5)) * (
+                        self.sensitivity / self.epsilon
+                    )
                     patch_target = "numpy.random.normal"
                 elif noise_type == "laplace":
                     expected_scale = self.sensitivity / self.epsilon
@@ -103,7 +111,9 @@ class TestApplyDifferentialPrivacy(unittest.TestCase):
 
                 # Mock noise generator with correct shape
                 with patch(patch_target) as mock_random:
-                    mock_random.return_value = np.zeros(3)  # Correctly shaped mock return
+                    mock_random.return_value = np.zeros(
+                        3
+                    )  # Correctly shaped mock return
                     apply_differential_privacy(
                         copy.deepcopy(self.delta_V),
                         epsilon=self.epsilon,
@@ -117,8 +127,12 @@ class TestApplyDifferentialPrivacy(unittest.TestCase):
 
     def test_empty_deltas(self):
         """Ensure function handles empty dictionaries correctly."""
-        dp_deltas = apply_differential_privacy({}, epsilon=self.epsilon, sensitivity=self.sensitivity)
-        self.assertEqual(dp_deltas, {}, "Function did not handle empty deltas correctly.")
+        dp_deltas = apply_differential_privacy(
+            {}, epsilon=self.epsilon, sensitivity=self.sensitivity
+        )
+        self.assertEqual(
+            dp_deltas, {}, "Function did not handle empty deltas correctly."
+        )
 
     def test_high_epsilon(self):
         """Verify that high epsilon produces minimal noise."""
