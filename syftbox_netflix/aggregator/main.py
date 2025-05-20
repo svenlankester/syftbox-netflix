@@ -21,7 +21,7 @@ from utils.vocab import create_tvseries_vocab
 
 # Load environment variables
 load_dotenv()
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 svd_init = False
 

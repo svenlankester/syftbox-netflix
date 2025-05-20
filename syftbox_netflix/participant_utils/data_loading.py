@@ -17,7 +17,7 @@ from ..loaders.netflix_loader import (
     participants_yaml_datasets,
 )
 
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 
 
 def load_tv_vocabulary(vocabulary_path):

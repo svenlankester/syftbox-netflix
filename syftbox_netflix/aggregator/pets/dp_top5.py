@@ -10,7 +10,7 @@ from .utils.logging_setup import logger
 
 print(logger)
 
-API_NAME = os.getenv("API_NAME")
+API_NAME = os.getenv("API_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 
 

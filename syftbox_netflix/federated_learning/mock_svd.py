@@ -128,7 +128,7 @@ def local_recommendation(
 
 
 def run_process():
-    API_NAME = os.getenv("API_NAME")
+    API_NAME = os.getenv("API_NAME", "syftbox-netflix")
     AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
     NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES")
     netflix_profiles_list = NETFLIX_PROFILES.split(",")
