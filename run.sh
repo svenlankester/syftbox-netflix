@@ -15,5 +15,5 @@ fi
 
 rm -rf .venv
 uv venv -p 3.12
-uv pip install -e .
+uv pip install -e . --quiet
 uv run main.py
