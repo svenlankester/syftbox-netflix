@@ -27,6 +27,18 @@ jobs:
           pip install -e .
           pip install pytest
 
+      - name: Create config.json
+        run: |
+          mkdir -p ~/.syftbox/
+          syftbox_config_path=$(realpath ~/.syftbox/)
+          mkdir -p ./SyftBox
+          syftbox_path=$(realpath ./SyftBox)
+          echo '{"data_dir":"'"$syftbox_path"'","email":"ci@openmined.org","server_url":"https://syftboxdev.openmined.org","client_url":"http://127.0.0.1:7938","refresh_token":"test"}' > "$syftbox_config_path/config.json"
+          ls -la "$syftbox_path"
+
+      - name: Display config.json
+        run: cat ~/.syftbox/config.json
+
       - name: Run pytest
         run: |
           pytest
