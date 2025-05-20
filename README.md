@@ -67,14 +67,14 @@ Optionally, fill in your Netflix account information to automate viewing history
 
 #### A more complete `.env` example:
    ```
-   API_NAME="syftbox-netflix"
-   AGGREGATOR_DATASITE="<aggregator-datasite-email>"
+   API_NAME="syftbox-netflix"                            # Mandatory
+   AGGREGATOR_DATASITE="<aggregator-datasite-email>"     # Mandatory
    NETFLIX_EMAIL="<your-netflix-email@provider.com>"
    NETFLIX_PASSWORD="<your-password>"
    NETFLIX_PROFILE="<profile-name>"
-   NETFLIX_CSV="NetflixViewingHistory.csv"
-   OUTPUT_DIR="/home/<your-username>/Downloads/"
-   AGGREGATOR_DATA_DIR="data/"
+   NETFLIX_CSV="NetflixViewingHistory.csv"               # Mandatory
+   OUTPUT_DIR="/home/<your-username>/Downloads/"         # Mandatory
+   AGGREGATOR_DATA_DIR="data/"                           # Mandatory
    ```
 
 # Viewing History Data format (Netflix)
