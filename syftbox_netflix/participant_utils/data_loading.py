@@ -151,43 +151,43 @@ def get_or_download_latest_data(
     static_file = None
     try:
         # Try to download the file using Chromedriver
-        # try:
-        #     chromedriver_path = subprocess.check_output(
-        #         ["which", "chromedriver"], text=True
-        #     ).strip()
-        #     os.environ["CHROMEDRIVER_PATH"] = chromedriver_path
-        #     if not os.path.exists(file_path):
-        #         print(f"Data file not found. Downloading to {file_path}...")
-        #         download_daily_data(datapath, filename, profile)
-        #         print(f"Successfully downloaded Netflix data to {file_path}.")
-        #     static_file = False
+        try:
+            chromedriver_path = subprocess.check_output(
+                ["which", "chromedriver"], text=True
+            ).strip()
+            os.environ["CHROMEDRIVER_PATH"] = chromedriver_path
+            if not os.path.exists(file_path):
+                print(f"Data file not found. Downloading to {file_path}...")
+                download_daily_data(datapath, filename, profile)
+                print(f"Successfully downloaded Netflix data to {file_path}.")
+            static_file = False
 
-        # except Exception as e:
-        #     print(
-        #         f">> ChromeDriver not found. Unable to retrieve from Netflix via download: {e}"
-        #     )
-        print(
-            f"Checking for a locally available static file: {file_path_static}..."
-        )
-
-        static_file = os.path.exists(file_path_static)
-
-        # Try to use the static file if downloading failed
-        if os.path.exists(file_path_static):
+        except Exception as e:
             print(
-                f"Using static viewing history (manually downloaded from Netflix): {file_path_static}..."
+                f">> ChromeDriver not found. Unable to retrieve from Netflix via download: {e}"
             )
-            static_file = True
-        else:
             print(
-                (
-                    f">> Neither ChromeDriver is available for download nor the static file exists. "
-                    f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
+                f"Checking for a locally available static file: {file_path_static}..."
+            )
+
+            static_file = os.path.exists(file_path_static)
+
+            # Try to use the static file if downloading failed
+            if os.path.exists(file_path_static):
+                print(
+                    f"Using static viewing history (manually downloaded from Netflix): {file_path_static}..."
                 )
-            )
-            raise FileNotFoundError(
-                f"Netflix viewing history file was not found: {file_path_static}"
-            )
+                static_file = True
+            else:
+                print(
+                    (
+                        f">> Neither ChromeDriver is available for download nor the static file exists. "
+                        f"Please retrieve the file manually from Netflix and make it available here: \n\t\t {datapath}"
+                    )
+                )
+                raise FileNotFoundError(
+                    f"Netflix viewing history file was not found: {file_path_static}"
+                )
 
     except Exception as e:
         print(f"Error retrieving Netflix data: {e}")
