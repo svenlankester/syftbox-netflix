@@ -173,3 +173,4 @@ script_timestamps/*
 aggregator/netflix_series.py
 
 demo
+.envZone.Identifier
