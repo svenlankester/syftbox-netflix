@@ -21,7 +21,7 @@ def get_users_mlp_parameters(
     biases = []
 
     for peer in peers:
-        dir = datasites_path / peer / "api_data" / api_name
+        dir = datasites_path / peer / "app_data" / api_name
 
         weight = [
             f
