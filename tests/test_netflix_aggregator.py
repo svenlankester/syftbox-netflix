@@ -20,7 +20,7 @@ from syftbox_netflix.aggregator.utils.vocab import create_tvseries_vocab
 API_NAME = "mock_api"
 PROJECT_DIR = "test_sandbox"
 DATA_DIR = "test_sandbox/aggregator/data"
-SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
+SHARED_FOLDER = "test_sandbox/this_client/app_data/netflix_data"
 
 
 class TestAggregatorMain_MLP(unittest.TestCase):
@@ -67,12 +67,12 @@ class TestAggregatorMain_MLP(unittest.TestCase):
     def test_network_participants_valid_entries(self):
         """
         Test discovery of network participants with valid API_NAME directories.
-        Expected: Only directories containing 'api_data/mock_api' are listed.
+        Expected: Only directories containing 'app_data/mock_api' are listed.
         """
 
-        (self.base_path / "user1" / "api_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user3" / "api_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user2" / "api_data").mkdir(
+        (self.base_path / "user1" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user3" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user2" / "app_data").mkdir(
             parents=True
         )  # Incomplete structure
 
@@ -84,8 +84,8 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         Test behavior when no valid API_NAME directories are present.
         Expected: Empty list.
         """
-        (self.base_path / "user1" / "api_data").mkdir(parents=True)
-        (self.base_path / "user2" / "api_data").mkdir(parents=True)
+        (self.base_path / "user1" / "app_data").mkdir(parents=True)
+        (self.base_path / "user2" / "app_data").mkdir(parents=True)
 
         result = network_participants(self.base_path, API_NAME)
         self.assertEqual(result, [])
@@ -103,9 +103,9 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         Test discovery of network participants with mixed valid and invalid directories.
         Expected: Only valid directories are listed.
         """
-        (self.base_path / "user1" / "api_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user3" / "api_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user2" / "api_data").mkdir(
+        (self.base_path / "user1" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user3" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user2" / "app_data").mkdir(
             parents=True
         )  # Incomplete structure
         (self.base_path / "invalid_user").mkdir(parents=True)  # Irrelevant structure
