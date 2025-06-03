@@ -23,7 +23,7 @@ from syftbox_netflix.aggregator.pets.fedavg_mlp import (
 
 API_NAME = "mock_api"
 DATA_DIR = "test_sandbox/aggregator/data"
-SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
+SHARED_FOLDER = "test_sandbox/this_client/app_data/netflix_data"
 
 
 class TestAggregatorMain_MLP(unittest.TestCase):
@@ -84,8 +84,8 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         peers = ["user1", "user2"]
 
         # Create test directories and files
-        user1_dir = self.base_path / "user1" / "api_data" / API_NAME
-        user2_dir = self.base_path / "user2" / "api_data" / API_NAME
+        user1_dir = self.base_path / "user1" / "app_data" / API_NAME
+        user2_dir = self.base_path / "user2" / "app_data" / API_NAME
         user1_dir.mkdir(parents=True, exist_ok=True)
         user2_dir.mkdir(parents=True, exist_ok=True)
 
