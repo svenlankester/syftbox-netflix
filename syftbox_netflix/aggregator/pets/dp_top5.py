@@ -87,7 +87,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
     dp_file = "top5_series_dp.npy"
 
     for peer in peers:
-        dir: Path = datasites_path / peer / "api_data" / API_NAME
+        dir: Path = datasites_path / peer / "app_data" / API_NAME
         file: Path = dir / dp_file
 
         if file.exists():
@@ -131,7 +131,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
         vocab: Path = (
             datasites_path
             / AGGREGATOR_DATASITE
-            / "api_data"
+            / "app_data"
             / API_NAME
             / "shared"
             / "tv-series_vocabulary.json"
