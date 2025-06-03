@@ -29,7 +29,7 @@ def get_users_svd_deltas(
 
     result = []
     for peer in peers:
-        dir = datasites_path / peer / "api_data" / api_name
+        dir = datasites_path / peer / "app_data" / api_name
 
         # Iterate through all profiles. Get all folders that start with "profile_"
         flr_prefix = "profile_"
