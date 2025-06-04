@@ -29,7 +29,7 @@ def get_users_svd_deltas(
 
     result = []
     for peer in peers:
-        dir = datasites_path / peer / "api_data" / api_name
+        dir = datasites_path / peer / "app_data" / api_name
 
         # Iterate through all profiles. Get all folders that start with "profile_"
         flr_prefix = "profile_"
@@ -47,21 +47,21 @@ def get_users_svd_deltas(
             delta_v_path = profile_dir / "delta_V.npy"
             delta_v_success_path = profile_dir / "global_finetuning_succeed.log"
             if not delta_v_path.exists():
-                logging.debug(f"Delta V not found for {profile}. Skipping...")
+                logging.debug(f"Delta V not found for {profile} ({peer}). Skipping...")
                 continue
 
             if delta_v_success_path.exists():
-                logging.debug(f"Delta V already processed for {profile}. Skipping...")
+                logging.debug(f"Delta V already processed for {profile} ({peer}). Skipping...")
                 continue
 
-            logging.debug(f"Loading delta V for {profile}...")
+            logging.debug(f"Loading delta V for {profile} ({peer})...")
             delta_V = np.load(delta_v_path, allow_pickle=True).item()
             result.append(delta_V)
 
             # Remove the delta_V.npy file and log date for update
             # os.remove(delta_v_path)
             logging.debug(
-                f"Delta V loaded for aggregation and [optionally] removed for {profile}."
+                f"Delta V loaded for aggregation and [optionally] removed for {profile} ({peer})."
             )
 
             # Create log file in the profile directory with today's date
