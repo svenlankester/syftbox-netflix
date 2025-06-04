@@ -38,7 +38,7 @@ def network_participants(datasite_path: Path, api_name: str) -> list[str]:
     Retrieves a list of user directories (participants) in a given datasite path.
     This function scans the network for all available peers by looking at directories in the datasite path.
 
-    By looking for "api_data / API_NAME" only those from the specific app will be considered.
+    By looking for "app_data / API_NAME" only those from the specific app will be considered.
 
     """
 
@@ -46,7 +46,7 @@ def network_participants(datasite_path: Path, api_name: str) -> list[str]:
     users = []
 
     for entry in entries:
-        if Path(datasite_path / entry / "api_data" / api_name).is_dir():
+        if Path(datasite_path / entry / "app_data" / api_name).is_dir():
             users.append(entry)
 
     return users
@@ -59,7 +59,7 @@ def create_shared_folder(
     Create a shared folder accessible to participants only with the computations
     """
 
-    shared_datapath: Path = path / "api_data" / api_name / "shared"
+    shared_datapath: Path = path / "app_data" / api_name / "shared"
     os.makedirs(shared_datapath, exist_ok=True)
 
     # Set the default permissions
