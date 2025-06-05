@@ -174,3 +174,4 @@ aggregator/netflix_series.py
 
 demo
 .envZone.Identifier
+.env:Zone.Identifier

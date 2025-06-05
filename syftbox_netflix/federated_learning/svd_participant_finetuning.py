@@ -71,6 +71,7 @@ def perform_local_training(
     """
     Perform local training for the participant.
     """
+    print("Executing local SVD training")
     V = copy.deepcopy(initial_V)
     U_u = copy.deepcopy(initial_U_u)
     for _ in range(iterations):
