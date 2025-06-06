@@ -25,8 +25,7 @@ logging.basicConfig(
 def get_users_svd_deltas(
     datasites_path: Path, api_name: str, peers: list[str]
 ) -> tuple[list, list]:
-    """ """
-
+    
     result = []
     for peer in peers:
         dir = datasites_path / peer / "app_data" / api_name
@@ -38,40 +37,52 @@ def get_users_svd_deltas(
             for f in os.listdir(dir)
             if os.path.isdir(os.path.join(dir, f)) and f.startswith(flr_prefix)
         ]
-
+        logging.debug(f"[svd_aggregator.py] {peer} - Profiles: {profiles}")
         # Sort the profiles by the number at the end of the folder name
         profiles = sorted(profiles, key=lambda x: int(x.split("_")[-1]))
 
-        for profile in profiles:
-            profile_dir = dir / profile / "svd_training"
-            delta_v_path = profile_dir / "delta_V.npy"
-            delta_v_success_path = profile_dir / "global_finetuning_succeed.log"
-            if not delta_v_path.exists():
-                logging.debug(f"Delta V not found for {profile} ({peer}). Skipping...")
-                continue
-
-            if delta_v_success_path.exists():
-                logging.debug(f"Delta V already processed for {profile} ({peer}). Skipping...")
-                continue
-
-            logging.debug(f"Loading delta V for {profile} ({peer})...")
-            delta_V = np.load(delta_v_path, allow_pickle=True).item()
-            result.append(delta_V)
-
-            # Remove the delta_V.npy file and log date for update
-            # os.remove(delta_v_path)
-            logging.debug(
-                f"Delta V loaded for aggregation and [optionally] removed for {profile} ({peer})."
-            )
-
-            # Create log file in the profile directory with today's date
-            with open(delta_v_success_path, "w") as f:
-                f.write(
-                    f"Participant {peer} - {profile} training results aggregated in global server."
-                )
-
+        if not profiles:       # to address those without profile_* folders
+            svd_data_path = dir / "svd_training"
+            _result = process_svd_files(svd_data_path, peer)
+            if _result is not None:
+                result.append(_result)
+        else:
+            for profile in profiles:
+                profile_dir = dir / profile / "svd_training"
+                _result = process_svd_files(profile_dir, peer, profile)
+                if _result is not None:
+                    result.append(_result)
+            
     return result
 
+def process_svd_files(svd_data_path: Path, peer, profile=""):
+    delta_v_path = svd_data_path / "delta_V.npy"
+    delta_v_success_path = svd_data_path / "global_finetuning_succeed.log"
+
+    if not delta_v_path.exists():
+        logging.debug(f"[svd_aggregator.py] Delta V not found for {profile} ({peer}). Skipping...")
+        return None
+    
+    if delta_v_success_path.exists():
+        logging.debug(f"[svd_aggregator.py] Delta V already processed for {profile} ({peer}). Skipping...")
+        return None
+
+    logging.debug(f"[svd_aggregator.py] Loading delta V for {profile} ({peer})...")
+    delta_V = np.load(delta_v_path, allow_pickle=True).item()
+
+    # Remove the delta_V.npy file and log date for update
+    # os.remove(delta_v_path)
+    logging.debug(
+        f"[svd_aggregator.py] Delta V loaded for aggregation and [optionally] removed for {profile} ({peer})."
+    )
+
+    # Create log file in the profile directory with today's date
+    with open(delta_v_success_path, "w") as f:
+        f.write(
+            f"Participant {peer} - {profile} training results aggregated in global server."
+        )
+    
+    return delta_V
 
 def server_initialization(save_to: str, tv_series_path: str, imdb_ratings_path: str):
     def normalize_string(s):
@@ -154,7 +165,7 @@ def server_aggregate(
 def svd_engine_init_and_aggregate(
     datasites_path: Path,
     shared_folder_path: Path,
-    API_NAME: str,
+    APP_NAME: str,
     peers: list[str],
     svd_init: bool = False,
 ):
@@ -175,7 +186,7 @@ def svd_engine_init_and_aggregate(
         logging.info("Checking for SVD delta V updates from participants...")
         # Load delta V from participants
         delta_V_list = []
-        delta_V_list = get_users_svd_deltas(datasites_path, API_NAME, peers)
+        delta_V_list = get_users_svd_deltas(datasites_path, APP_NAME, peers)
 
         if delta_V_list:
             logging.info(
