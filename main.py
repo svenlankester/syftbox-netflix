@@ -45,7 +45,6 @@ def run_execution_context(client):
     """
     Determine and handle execution context (aggregator vs. participant).
     """
-    AGGREGATOR_DATASITE = "aggregator@openmined.org"
     if client.email == AGGREGATOR_DATASITE:
         # Skip execution if conditions are not met
         if not should_run(60):
