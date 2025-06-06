@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -56,7 +57,7 @@ logger.handlers = [console_handler]
 
 # Load environment variables
 load_dotenv()
-API_NAME = os.getenv("API_NAME", "syftbox-netflix")
+APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 CSV_NAME = os.getenv("NETFLIX_CSV", "NetflixViewingHistory.csv")
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", ".")
@@ -133,10 +134,22 @@ def run_federated_learning(
 
 
 def main(profile, profile_id):
-    logging.info(f"Starting process for profile: {profile} (ID: {profile_id})")
-    # import sys
+    logging.info("Starting local webpage...")
+    local_path = os.path.dirname(os.path.abspath(__file__))  # get path of this main.py
 
-    # sys.exit()
+    command = [
+        "uv", "run",
+        "uvicorn", "app:app",
+        "--reload",
+        "--host", "0.0.0.0",
+        "--port", "8080"
+    ]
+
+    # Run it from the script's directory
+    subprocess.run(command, cwd=local_path, check=True)
+
+    logging.info(f"Starting process for profile: {profile} (ID: {profile_id})")
+
     config = SyftClientConfig.load()
     client = SyftboxClient(config)
     profile_masked_name = f"profile_{profile_id}"
@@ -144,10 +157,10 @@ def main(profile, profile_id):
 
     # Set up environment
     restricted_shared_folder, restricted_public_folder, private_folder = (
-        setup_environment(client, API_NAME, AGGREGATOR_DATASITE, profile_masked_name)
+        setup_environment(client, APP_NAME, AGGREGATOR_DATASITE, profile_masked_name)
     )
 
-    print(
+    logging.info(
         "Setting up Environment with",
         "restricted_shared_folder",
         restricted_shared_folder,
