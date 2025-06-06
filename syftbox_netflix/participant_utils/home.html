@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Netflix Recommendation Evaluation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #e50914;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      font-size: 1.5rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 2rem;
+    }
+    .description {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: #555;
+    }
+    .comparison-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .comparison-column {
+      flex: 1 1 450px;
+      background-color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .column-title {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    .top-series-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .series-item {
+      background-color: white;
+      padding: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      text-align: center;
+      width: 150px;
+      flex: 1 1 150px;
+    }
+    .series-item img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      object-fit: cover;
+      opacity: 0.85;
+      transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .series-item img:hover {
+      opacity: 1;
+      transform: scale(1.03);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .feedback-button {
+      background-color: #e50914;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      font-weight: bold;
+      display: block;
+      margin: 0 auto 1rem auto;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+    .feedback-button:hover {
+      background-color: #ff4d4d;
+      transform: scale(1.05);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+    }
+    .feedback-button:active {
+      background-color: #d40813;
+      transform: scale(0.98);
+    }
+    .footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-top: 2rem;
+      padding: 1rem;
+    }
+    @media (max-width: 768px) {
+      .comparison-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .comparison-column {
+        width: 100%;
+        max-width: 500px;
+      }
+      .series-item {
+        width: 100%;
+        max-width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Netflix Recommendation Evaluation
+  </header>
+  <div class="container">
+    <div class="description">
+      Let us know which list has TV Series that you would rather watch next...
+    </div>
+
+    <div class="comparison-container">
+      <!-- Popular Series Column -->
+      <div class="comparison-column">
+        <div class="column-title">List 1: Most Seen Series by Participants</div>
+        <button class="feedback-button" onclick="">I prefer this list</button>
+        <div class="top-series-row" id="top-series-row">
+          <div class="series-item">
+            <img src="https://occ-0-1007-2705.1.nflxso.net/dnm/api/v6/evlCitJPPCVCry0BZlEFb5-QjKc/AAAABeZ9h1xnShfHjSp35E0vIUrN2dupbevVIodO7TYKWWw1sPrRriXyoA9DsyN-C7wZPzZX6SVuLzqm-TDvKZsYLmqz75lC.jpg?r=09b" alt="Gilmore Girls poster">
+            <div><strong>Gilmore Girls</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://www.whats-on-netflix.com/wp-content/uploads/covers/startrekprodigy.jpeg" alt="Star Trek: Prodigy poster">
+            <div><strong>Star Trek: Prodigy</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVKgtHjYJI6hldkEU91fpHLiyrMJO9RguRee28Sr-EPaAwwGCjZijfnWnbYWWhAnwuIhlPNAdpDZtqzwQb5QgNYgLdpInYR1c53nQ8NWM_GpdWxXOUHGQjeUrLAZdYLLw5w.jpg" alt="Outlander poster">
+            <div><strong>Outlander</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVZclGoSGoB5T6QzmfurPKPQKwI2W86ykyIDClljAfHKuTsgDK_L4-CKiNhBuuwerwegm3DWrWCW8Fcbau1RkPyU4G2GbWRwybJtdOl2eeC-Ty3TiLruM3F9IMbD79p1-NimAHQM6y2E2i2Qx3jakZY3ILerMqe_O7UN31LIBA.jpg" alt="Love Is Blind poster">
+            <div><strong>Love Is Blind</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personalized Series Column -->
+      <div class="comparison-column">
+        <div class="column-title">List 2: Based on Your Viewing History</div>
+        <button class="feedback-button" onclick="">I prefer this list</button>
+        <div class="top-series-row" id="recommended-series-row">
+          <div class="series-item">
+            <img src="https://www.whats-on-netflix.com/wp-content/uploads/covers/bridgerton.jpeg" alt="Bridgerton poster">
+            <div><strong>Bridgerton</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABRMb6oKlW-ATK_gTsNoT13u4SGfO6CiHPkb1gY6AYgWX9FtQ-nDE4wRAxcmHFmjtFBB2qNoB-e89x3ARilL4nXxoHSuf9DAROcCb8NOlqKjecjyaRbn4_r2xbuVx71LxlbDxHkPKTOUExYcv1m03earWE2q5Z7I.jpg" alt="Grace and Frankie poster">
+            <div><strong>Grace and Frankie</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVKgtHjYJI6hldkEU91fpHLiyrMJO9RguRee28Sr-EPaAwwGCjZijfnWnbYWWhAnwuIhlPNAdpDZtqzwQb5QgNYgLdpInYR1c53nQ8NWM_GpdWxXOUHGQjeUrLAZdYLLw5w.jpg" alt="Outlander poster">
+            <div><strong>Outlander</strong></div>
+          </div>
+          <div class="series-item">
+            <img src="https://occ-0-1722-1723.1.nflxso.net/dnm/api/v6/evlCitJPPCVCry0BZlEFb5-QjKc/AAAABcs35XN112JgIXdNx3Sy-rngulkj8ZVfq0fH_adB-Hqe-r0NQ76wEvhb8Wo5GvYjGo6o37RA1WPq8DqM-gpPXZEc51fCsutBNDa0dkQ7SA7dMkOfVOKQgcVQnvJ4RPu6DWQK345IA9BY3047MU9WggftWHfaXnQ.jpg" alt="The Umbrella Academy poster">
+            <div><strong>The Umbrella Academy</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      Thank you for helping us improve our recommendations! 🚀
+    </div>
+  </div>
+</body>
+</html>
