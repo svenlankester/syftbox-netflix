@@ -126,7 +126,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
         return len(available_dp_vectors)
     else:
         destination_folder: Path = (
-            datasites_path / AGGREGATOR_DATASITE / "private" / APP_NAME
+            datasites_path / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared"
         )
         vocab: Path = (
             datasites_path

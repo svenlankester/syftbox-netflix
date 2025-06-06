@@ -7,18 +7,18 @@ from syft_core.permissions import SyftPermission
 APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
 
 
-def setup_environment(client, api_name, aggregator_path, profile):
+def setup_environment(client, app_name, aggregator_path, profile):
     """
     Set up public and private folders for data storage.
 
     Args:
-        client: Client instance for managing API and datasite paths.
+        client: Client instance for managing APP and datasite paths.
 
     Returns:
         tuple: Paths to restricted public and private folders.
     """
 
-    def create_private_folder(path: Path, client: SyftboxClient, profile) -> Path:
+    def create_private_folder(client: SyftboxClient, profile) -> Path:
         """
         Create a private folder within the specified path.
 
@@ -28,7 +28,7 @@ def setup_environment(client, api_name, aggregator_path, profile):
         # private folders should always be out of the datasite path so that there are
         # no accidental data leaks
         APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
-        app_data_dir = Path(client.config.data_dir) / "private" / "app_data" / APP_NAME
+        app_data_dir = Path(client.config.data_dir) / "private" / APP_NAME
         app_data_dir.mkdir(parents=True, exist_ok=True)
         netflix_datapath = app_data_dir / profile
         netflix_datapath.mkdir(parents=True, exist_ok=True)
@@ -56,11 +56,15 @@ def setup_environment(client, api_name, aggregator_path, profile):
         permissions.save(path)
 
     datasites_path = Path(client.datasite_path.parent)
+    
     restricted_shared_folder = Path(
-        datasites_path / aggregator_path / "app_data" / api_name / "shared"
+        datasites_path / aggregator_path / "app_data" / app_name / "shared"     # AGGREGADTOR's shared folder
     )
-    restricted_public_folder = client.app_data(api_name) / profile
+    
+    restricted_public_folder = client.app_data(app_name) / profile
 
     create_public_folder(restricted_public_folder, client, aggregator_path)
-    private_folder = create_private_folder(client.datasite_path, client, profile)
+    
+    private_folder = create_private_folder(client, profile)
+
     return restricted_shared_folder, restricted_public_folder, private_folder

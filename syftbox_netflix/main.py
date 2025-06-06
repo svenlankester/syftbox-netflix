@@ -146,7 +146,7 @@ def main(profile, profile_id):
     ]
 
     # Run it from the script's directory
-    subprocess.run(command, cwd=local_path, check=True)
+    subprocess.Popen(command, cwd=local_path)
 
     logging.info(f"Starting process for profile: {profile} (ID: {profile_id})")
 
@@ -160,7 +160,7 @@ def main(profile, profile_id):
         setup_environment(client, APP_NAME, AGGREGATOR_DATASITE, profile_masked_name)
     )
 
-    logging.info(
+    print(
         "Setting up Environment with",
         "restricted_shared_folder",
         restricted_shared_folder,
@@ -215,7 +215,7 @@ def main(profile, profile_id):
         restricted_public_folder, "svd_training", "local_finetuning_succeed.txt"
     )
     if os.path.exists(finetuned_flag_path):
-        logging.info(f"Fine-tuning already completed for {profile_masked_name}.")
+        logging.info(f"Fine-tuning already completed for {profile_masked_name}: {finetuned_flag_path}.")
     else:
         logging.warning(
             f"Fine-tuning not yet triggered for {profile_masked_name}. Starting process..."

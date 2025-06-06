@@ -30,6 +30,8 @@ def main():
     try:
         config = SyftClientConfig.load()
         client = SyftboxClient(config)
+        SYFTBOX_PATH = Path(client.config.data_dir)
+
         logging.info("Client loaded successfully.")
 
         datasites_path = Path(client.datasite_path.parent)
@@ -52,9 +54,9 @@ def main():
         logging.debug("Shared folder created successfully.")
 
         # Paillier Homomorphic Encryption setup
-        private_path = client.datasite_path / "private" / APP_NAME
+        private_path = SYFTBOX_PATH / "private" / APP_NAME
         generate_keys(public_path=shared_folder_path, private_path=private_path)
-        logging.info("Paillier Homomorphic Encryption keys generated.")
+        logging.info(f"Paillier Homomorphic Encryption keys generated.")
 
         # Create a vocabulary of TV series
         tv_vocab = create_tvseries_vocab(shared_folder_path)
@@ -79,7 +81,7 @@ def main():
             )
 
             top_series_path: Path = (
-                client.datasite_path / "private" / APP_NAME / "top5_series.json"
+                client.datasite_path / "app_data" / APP_NAME / "shared" / "top5_series.json"
             )
             template_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "assets", "top5-series.html")
             
@@ -96,7 +98,7 @@ def main():
             ## Only works for cases where the aggregator account is also a participant, and uses the aggregator's private data to generate recommendations
             ## This is for DEMO purposes while maintaining privacy of the participants
             participant_private_path = (
-                client.datasite_path / "private" / APP_NAME / "profile_0"
+                SYFTBOX_PATH / "private" / APP_NAME / "profile_0"
             )
             recommendations = local_recommendation(
                 participant_private_path,
