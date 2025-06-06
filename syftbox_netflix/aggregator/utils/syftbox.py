@@ -38,7 +38,7 @@ def network_participants(datasite_path: Path, api_name: str) -> list[str]:
     Retrieves a list of user directories (participants) in a given datasite path.
     This function scans the network for all available peers by looking at directories in the datasite path.
 
-    By looking for "app_data / API_NAME" only those from the specific app will be considered.
+    By looking for "app_data / APP_NAME" only those from the specific app will be considered.
 
     """
 

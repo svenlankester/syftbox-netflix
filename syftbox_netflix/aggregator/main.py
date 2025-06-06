@@ -21,7 +21,7 @@ from syftbox_netflix.aggregator.utils.vocab import create_tvseries_vocab
 
 # Load environment variables
 load_dotenv()
-API_NAME = os.getenv("API_NAME", "syftbox-netflix")
+APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
 DATA_DIR = os.path.join(os.getcwd(), os.getenv("AGGREGATOR_DATA_DIR"))
 svd_init = False
 
@@ -35,7 +35,7 @@ def main():
         datasites_path = Path(client.datasite_path.parent)
         logging.debug("Retrieving datasites path...")
 
-        peers = network_participants(datasites_path, API_NAME)
+        peers = network_participants(datasites_path, APP_NAME)
         peers_w_netflix_data = participants_datasets(
             datasites_path, dataset_name="Netflix Data", dataset_format="CSV"
         )
@@ -47,12 +47,12 @@ def main():
 
         # Shared folder setup
         shared_folder_path = create_shared_folder(
-            Path(client.datasite_path), API_NAME, client, peers
+            Path(client.datasite_path), APP_NAME, client, peers
         )
         logging.debug("Shared folder created successfully.")
 
         # Paillier Homomorphic Encryption setup
-        private_path = client.datasite_path / "private" / API_NAME
+        private_path = client.datasite_path / "private" / APP_NAME
         generate_keys(public_path=shared_folder_path, private_path=private_path)
         logging.info("Paillier Homomorphic Encryption keys generated.")
 
@@ -62,7 +62,7 @@ def main():
 
         # Initialize the SVD model and aggregate the available deltas for fine-tuning
         svd_engine_init_and_aggregate(
-            datasites_path, shared_folder_path, API_NAME, peers, svd_init
+            datasites_path, shared_folder_path, APP_NAME, peers, svd_init
         )
 
         # Differential Privacy Top-5 TV Series
@@ -79,7 +79,7 @@ def main():
             )
 
             top_series_path: Path = (
-                client.datasite_path / "private" / API_NAME / "top5_series.json"
+                client.datasite_path / "private" / APP_NAME / "top5_series.json"
             )
             template_path = os.path.join(os.getcwd(), "syftbox_netflix", "aggregator", "assets", "top5-series.html")
             
@@ -96,7 +96,7 @@ def main():
             ## Only works for cases where the aggregator account is also a participant, and uses the aggregator's private data to generate recommendations
             ## This is for DEMO purposes while maintaining privacy of the participants
             participant_private_path = (
-                client.datasite_path / "private" / API_NAME / "profile_0"
+                client.datasite_path / "private" / APP_NAME / "profile_0"
             )
             recommendations = local_recommendation(
                 participant_private_path,

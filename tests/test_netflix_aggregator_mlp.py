@@ -21,7 +21,7 @@ from syftbox_netflix.aggregator.pets.fedavg_mlp import (
     weighted_average,
 )
 
-API_NAME = "mock_api"
+APP_NAME = "mock_api"
 DATA_DIR = "test_sandbox/aggregator/data"
 SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
 
@@ -84,8 +84,8 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         peers = ["user1", "user2"]
 
         # Create test directories and files
-        user1_dir = self.base_path / "user1" / "app_data" / API_NAME
-        user2_dir = self.base_path / "user2" / "app_data" / API_NAME
+        user1_dir = self.base_path / "user1" / "app_data" / APP_NAME
+        user2_dir = self.base_path / "user2" / "app_data" / APP_NAME
         user1_dir.mkdir(parents=True, exist_ok=True)
         user2_dir.mkdir(parents=True, exist_ok=True)
 
@@ -96,7 +96,7 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         (user2_dir / "netflix_mlp_weights_150.joblib").touch()
         (user2_dir / "netflix_mlp_bias_150.joblib").touch()
 
-        weights, biases = get_users_mlp_parameters(self.base_path, API_NAME, peers)
+        weights, biases = get_users_mlp_parameters(self.base_path, APP_NAME, peers)
 
         expected_weights = [
             user1_dir / "netflix_mlp_weights_200.joblib",

@@ -128,7 +128,7 @@ def local_recommendation(
 
 
 def run_process():
-    API_NAME = os.getenv("API_NAME", "syftbox-netflix")
+    APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
     AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
     NETFLIX_PROFILES = os.getenv("NETFLIX_PROFILES")
     netflix_profiles_list = NETFLIX_PROFILES.split(",")
@@ -152,7 +152,7 @@ def run_process():
             restricted_public_folders[profile_masked_name],
             private_folders[profile_masked_name],
         ) = setup_environment(
-            client, API_NAME, AGGREGATOR_DATASITE, profile_masked_name
+            client, APP_NAME, AGGREGATOR_DATASITE, profile_masked_name
         )
 
     ########################################

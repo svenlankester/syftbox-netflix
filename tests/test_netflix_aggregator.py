@@ -17,7 +17,7 @@ from unittest.mock import patch
 from syftbox_netflix.aggregator.utils.syftbox import network_participants
 from syftbox_netflix.aggregator.utils.vocab import create_tvseries_vocab
 
-API_NAME = "mock_api"
+APP_NAME = "mock_api"
 PROJECT_DIR = "test_sandbox"
 DATA_DIR = "test_sandbox/aggregator/data"
 SHARED_FOLDER = "test_sandbox/this_client/api_data/netflix_data"
@@ -66,28 +66,28 @@ class TestAggregatorMain_MLP(unittest.TestCase):
 
     def test_network_participants_valid_entries(self):
         """
-        Test discovery of network participants with valid API_NAME directories.
+        Test discovery of network participants with valid APP_NAME directories.
         Expected: Only directories containing 'app_data/mock_api' are listed.
         """
 
-        (self.base_path / "user1" / "app_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user3" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user1" / "app_data" / APP_NAME).mkdir(parents=True)
+        (self.base_path / "user3" / "app_data" / APP_NAME).mkdir(parents=True)
         (self.base_path / "user2" / "app_data").mkdir(
             parents=True
         )  # Incomplete structure
 
-        result = network_participants(self.base_path, API_NAME)
+        result = network_participants(self.base_path, APP_NAME)
         self.assertEqual(result, ["user1", "user3"])
 
     def test_network_participants_no_valid_entries(self):
         """
-        Test behavior when no valid API_NAME directories are present.
+        Test behavior when no valid APP_NAME directories are present.
         Expected: Empty list.
         """
         (self.base_path / "user1" / "app_data").mkdir(parents=True)
         (self.base_path / "user2" / "app_data").mkdir(parents=True)
 
-        result = network_participants(self.base_path, API_NAME)
+        result = network_participants(self.base_path, APP_NAME)
         self.assertEqual(result, [])
 
     def test_network_participants_empty_directory(self):
@@ -95,7 +95,7 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         Test behavior when the sandbox directory is empty.
         Expected: Empty list.
         """
-        result = network_participants(self.base_path, API_NAME)
+        result = network_participants(self.base_path, APP_NAME)
         self.assertEqual(result, [])
 
     def test_network_participants_mixed_valid_invalid_entries(self):
@@ -103,14 +103,14 @@ class TestAggregatorMain_MLP(unittest.TestCase):
         Test discovery of network participants with mixed valid and invalid directories.
         Expected: Only valid directories are listed.
         """
-        (self.base_path / "user1" / "app_data" / API_NAME).mkdir(parents=True)
-        (self.base_path / "user3" / "app_data" / API_NAME).mkdir(parents=True)
+        (self.base_path / "user1" / "app_data" / APP_NAME).mkdir(parents=True)
+        (self.base_path / "user3" / "app_data" / APP_NAME).mkdir(parents=True)
         (self.base_path / "user2" / "app_data").mkdir(
             parents=True
         )  # Incomplete structure
         (self.base_path / "invalid_user").mkdir(parents=True)  # Irrelevant structure
 
-        result = network_participants(self.base_path, API_NAME)
+        result = network_participants(self.base_path, APP_NAME)
         self.assertEqual(result, ["user1", "user3"])
 
     @patch("os.getcwd")

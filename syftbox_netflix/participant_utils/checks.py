@@ -1,12 +1,12 @@
 import os
 from datetime import datetime
 
-API_NAME = os.getenv("API_NAME", "syftbox-netflix")
+APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
 
 
 def should_run(interval=1) -> bool:
     INTERVAL = interval
-    timestamp_file = f"./script_timestamps/{API_NAME}_last_run"
+    timestamp_file = f"./script_timestamps/{APP_NAME}_last_run"
     os.makedirs(os.path.dirname(timestamp_file), exist_ok=True)
     now = datetime.now().timestamp()
     time_diff = INTERVAL  # default to running if no file exists

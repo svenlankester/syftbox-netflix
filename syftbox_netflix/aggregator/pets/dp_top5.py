@@ -10,7 +10,7 @@ from syftbox_netflix.aggregator.utils.logging_setup import logger
 
 print(logger)
 
-API_NAME = os.getenv("API_NAME", "syftbox-netflix")
+APP_NAME = os.getenv("APP_NAME", "syftbox-netflix")
 AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 
 
@@ -36,7 +36,7 @@ def calculate_top5(files: list[Path], destination_folder: Path, vocab: Path):
         index_to_name = {v: k for k, v in series_mapping.items()}
     except:
         print(
-            f"> Error: {API_NAME} | Aggregator: {AGGREGATOR_DATASITE} | Unable to open vocab -> {str(vocab)}"
+            f"> Error: {APP_NAME} | Aggregator: {AGGREGATOR_DATASITE} | Unable to open vocab -> {str(vocab)}"
         )
 
     destination_folder.mkdir(parents=True, exist_ok=True)
@@ -87,7 +87,7 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
     dp_file = "top5_series_dp.npy"
 
     for peer in peers:
-        dir: Path = datasites_path / peer / "app_data" / API_NAME
+        dir: Path = datasites_path / peer / "app_data" / APP_NAME
         file: Path = dir / dp_file
 
         if file.exists():
@@ -120,19 +120,19 @@ def dp_top5_series(datasites_path: Path, peers: list[str], min_participants: int
 
     if len(available_dp_vectors) < min_participants:
         print(
-            f"{API_NAME} | Aggregator | There are no sufficient partcipants \
+            f"{APP_NAME} | Aggregator | There are no sufficient partcipants \
                 (Available: {len(available_dp_vectors)}| Required: {min_participants})"
         )
         return len(available_dp_vectors)
     else:
         destination_folder: Path = (
-            datasites_path / AGGREGATOR_DATASITE / "private" / API_NAME
+            datasites_path / AGGREGATOR_DATASITE / "private" / APP_NAME
         )
         vocab: Path = (
             datasites_path
             / AGGREGATOR_DATASITE
             / "app_data"
-            / API_NAME
+            / APP_NAME
             / "shared"
             / "tv-series_vocabulary.json"
         )

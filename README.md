@@ -67,7 +67,7 @@ Optionally, fill in your Netflix account information to automate viewing history
 
 #### A more complete `.env` example:
    ```
-   API_NAME="syftbox-netflix"                            # Mandatory
+   APP_NAME="syftbox-netflix"                            # Mandatory
    AGGREGATOR_DATASITE="<aggregator-datasite-email>"     # Mandatory
    NETFLIX_EMAIL="<your-netflix-email@provider.com>"
    NETFLIX_PASSWORD="<your-password>"
