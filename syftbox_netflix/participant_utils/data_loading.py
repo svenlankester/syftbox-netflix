@@ -135,7 +135,7 @@ def get_or_download_latest_data(
     config = SyftClientConfig.load()
     client = SyftboxClient(config)
 
-    app_data_dir = Path(client.config.data_dir) / "private" / "app_data" / APP_NAME
+    app_data_dir = Path(client.config.data_dir) / "private" / APP_NAME
     app_data_dir.mkdir(parents=True, exist_ok=True)
     netflix_datapath = app_data_dir / datapath
     netflix_datapath.mkdir(parents=True, exist_ok=True)
