@@ -139,22 +139,12 @@
         <div class="column-title">List 1: Most Seen Series by Participants</div>
         <button class="feedback-button" onclick="">I prefer this list</button>
         <div class="top-series-row" id="top-series-row">
-          <div class="series-item">
-            <img src="https://occ-0-1007-2705.1.nflxso.net/dnm/api/v6/evlCitJPPCVCry0BZlEFb5-QjKc/AAAABeZ9h1xnShfHjSp35E0vIUrN2dupbevVIodO7TYKWWw1sPrRriXyoA9DsyN-C7wZPzZX6SVuLzqm-TDvKZsYLmqz75lC.jpg?r=09b" alt="Gilmore Girls poster">
-            <div><strong>Gilmore Girls</strong></div>
-          </div>
-          <div class="series-item">
-            <img src="https://www.whats-on-netflix.com/wp-content/uploads/covers/startrekprodigy.jpeg" alt="Star Trek: Prodigy poster">
-            <div><strong>Star Trek: Prodigy</strong></div>
-          </div>
-          <div class="series-item">
-            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVKgtHjYJI6hldkEU91fpHLiyrMJO9RguRee28Sr-EPaAwwGCjZijfnWnbYWWhAnwuIhlPNAdpDZtqzwQb5QgNYgLdpInYR1c53nQ8NWM_GpdWxXOUHGQjeUrLAZdYLLw5w.jpg" alt="Outlander poster">
-            <div><strong>Outlander</strong></div>
-          </div>
-          <div class="series-item">
-            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVZclGoSGoB5T6QzmfurPKPQKwI2W86ykyIDClljAfHKuTsgDK_L4-CKiNhBuuwerwegm3DWrWCW8Fcbau1RkPyU4G2GbWRwybJtdOl2eeC-Ty3TiLruM3F9IMbD79p1-NimAHQM6y2E2i2Qx3jakZY3ILerMqe_O7UN31LIBA.jpg" alt="Love Is Blind poster">
-            <div><strong>Love Is Blind</strong></div>
-          </div>
+          {% for item in series %}
+            <div class="series-item">
+              <img src="{{ item.img }}" alt="{{ item.name }}">
+              <div><strong>{{ item.name }}</strong></div>
+            </div>
+          {% endfor %}
         </div>
       </div>
 

@@ -14,7 +14,8 @@ dependencies = [
     "diffprivlib>=0.6.5",
     "phe",
     "matplotlib",
-    "fastsyftbox"
+    "fastsyftbox",
+    "jinja2"
 ]
 
 [build-system]
