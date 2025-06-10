@@ -1,6 +1,6 @@
 import copy
 import os
-
+import random
 import numpy as np
 
 from ..participant_utils.data_loading import (
@@ -65,25 +65,75 @@ def prepare_training_data(user_id, tv_vocab, final_ratings):
     ]
 
 
+# def perform_local_training(
+#     train_data, initial_V, initial_U_u, alpha=0.01, lambda_reg=0.1, iterations=10
+# ):
+#     """
+#     Perform local training for the participant.
+#     """
+#     print("Started SVD learning")
+#     V = copy.deepcopy(initial_V)
+#     U_u = copy.deepcopy(initial_U_u)
+#     for _ in range(iterations):
+#         for _, item_id, r in train_data:
+#             pred = U_u.dot(V[item_id])
+#             error = r - pred
+#             U_u_grad = error * V[item_id] - lambda_reg * U_u
+#             V_i_grad = error * U_u - lambda_reg * V[item_id]
+#             U_u += alpha * U_u_grad
+#             V[item_id] += alpha * V_i_grad
+#     return initial_V, V, U_u
+
 def perform_local_training(
     train_data, initial_V, initial_U_u, alpha=0.01, lambda_reg=0.1, iterations=10
 ):
     """
-    Perform local training for the participant.
+    Perform local training for the participant using BPR (FedBPR-style).
+    train_data: list of (user_id, item_id, rating)
+    initial_V: item vector
+    initial_U_u: user vector
     """
-    print("Started SVD learning")
+    print("Started BPR learning")
     V = copy.deepcopy(initial_V)
     U_u = copy.deepcopy(initial_U_u)
-    for _ in range(iterations):
-        for _, item_id, r in train_data:
-            pred = U_u.dot(V[item_id])
-            error = r - pred
-            U_u_grad = error * V[item_id] - lambda_reg * U_u
-            V_i_grad = error * U_u - lambda_reg * V[item_id]
-            U_u += alpha * U_u_grad
-            V[item_id] += alpha * V_i_grad
-    return initial_V, V, U_u
 
+    # Hyperparameters from FedBPR logic
+    user_reg = alpha / 20
+    pos_item_reg = alpha / 20
+    neg_item_reg = alpha / 200
+
+    # Build item sets
+    positive_items = list({item for _, item, _ in train_data})
+    all_items = list(range(len(V)))
+    negative_items = list(set(all_items) - set(positive_items))
+
+    print(f"\n\nNeg items : {negative_items} \n\n")
+
+    if not negative_items:
+        return initial_V, V, U_u
+
+    for _ in range(iterations):
+        for pos_item in positive_items:
+            if not negative_items:
+                continue
+            neg_item = random.choice(negative_items)
+
+            # BPR gradient update
+            x_u_pos = U_u.dot(V[pos_item])
+            x_u_neg = U_u.dot(V[neg_item])
+            x_uij = x_u_pos - x_u_neg
+            sigmoid_grad = 1 / (1 + np.exp(x_uij))  # dL/dx
+
+            user_grad = sigmoid_grad * (V[pos_item] - V[neg_item]) - user_reg * U_u
+            pos_item_grad = sigmoid_grad * U_u - pos_item_reg * V[pos_item]
+            neg_item_grad = -sigmoid_grad * U_u - neg_item_reg * V[neg_item]
+
+            # Apply updates
+            U_u += alpha * user_grad
+            V[pos_item] += alpha * pos_item_grad
+            V[neg_item] += alpha * neg_item_grad
+
+    return initial_V, V, U_u
 
 def participant_fine_tuning(
     user_id,
