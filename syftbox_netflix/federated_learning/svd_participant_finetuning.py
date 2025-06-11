@@ -93,25 +93,25 @@ def perform_local_training(
     initial_V: item vector
     initial_U_u: user vector
     """
-    print("Started BPR learning")
     V = copy.deepcopy(initial_V)
     U_u = copy.deepcopy(initial_U_u)
 
-    # Hyperparameters from FedBPR logic
+    # Hyperparameters from FedBPR paper
     user_reg = alpha / 20
     pos_item_reg = alpha / 20
     neg_item_reg = alpha / 200
 
     # Build item sets
     positive_items = list({item for _, item, _ in train_data})
+    # In our experiment setup, the candidate item selection is using all-items strategy
     all_items = list(range(len(V)))
     negative_items = list(set(all_items) - set(positive_items))
 
-    print(f"\n\nNeg items : {negative_items} \n\n")
-
+    # All is watched / there is no data to train on
     if not negative_items:
         return initial_V, V, U_u
 
+    # BPR learning
     for _ in range(iterations):
         for pos_item in positive_items:
             if not negative_items:
@@ -122,8 +122,9 @@ def perform_local_training(
             x_u_pos = U_u.dot(V[pos_item])
             x_u_neg = U_u.dot(V[neg_item])
             x_uij = x_u_pos - x_u_neg
-            sigmoid_grad = 1 / (1 + np.exp(x_uij))  # dL/dx
+            sigmoid_grad = 1 / (1 + np.exp(x_uij))  # dL/dx -> From BPR
 
+            # Nudge results in direction according to gradient
             user_grad = sigmoid_grad * (V[pos_item] - V[neg_item]) - user_reg * U_u
             pos_item_grad = sigmoid_grad * U_u - pos_item_reg * V[pos_item]
             neg_item_grad = -sigmoid_grad * U_u - neg_item_reg * V[neg_item]
