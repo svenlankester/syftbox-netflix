@@ -272,8 +272,10 @@ def main(profile, profile_id):
             exclude_watched=True,
         )
 
+        results_path = 'results/recommendations.json'
         try:
-            with open('results/recommendations.json', 'w') as f:
+            os.makedirs(os.path.dirname(results_path), exist_ok=True)
+            with open(results_path, 'w') as f:
                 json.dump(recommendations, f, indent=4)
         except (IOError, TypeError) as e:
             logging.error(
