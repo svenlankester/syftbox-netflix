@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+import json
 
 import numpy as np
 from dotenv import load_dotenv
@@ -264,12 +265,20 @@ def main(profile, profile_id):
             f"Could not find TV vocabulary file: {e}"
         )
         
-        local_recommendation(
+        recommendations = local_recommendation(
             participant_private_path,
             shared_folder_path,
             tv_vocab,
             exclude_watched=True,
         )
+
+        try:
+            with open('results/recommendations.json', 'w') as f:
+                json.dump(recommendations, f, indent=4)
+        except (IOError, TypeError) as e:
+            logging.error(
+                f"ERROR: Failed to write local recommendations to output file: {e}"
+            )
 
     except Exception as e:
         logging.error(
