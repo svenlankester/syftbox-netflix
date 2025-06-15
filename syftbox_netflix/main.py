@@ -272,7 +272,7 @@ def main(profile, profile_id):
             exclude_watched=True,
         )
 
-        results_path = 'results/recommendations.json'
+        results_path = participant_private_path / "recommendations.json"
         try:
             os.makedirs(os.path.dirname(results_path), exist_ok=True)
             with open(results_path, 'w') as f:
