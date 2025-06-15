@@ -250,7 +250,7 @@ def main(profile, profile_id):
         ## Only works for cases where the aggregator account is also a participant, and uses the aggregator's private data to generate recommendations
         ## This is for DEMO purposes while maintaining privacy of the participants
         participant_private_path = (
-            client.datasite_path / "private" / APP_NAME / "profile_0"
+            Path(client.config.data_dir) / "private" / APP_NAME / "profile_0"
         )
         datasites_path = Path(client.datasite_path.parent)
         shared_folder_path: Path = (datasites_path / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared")
