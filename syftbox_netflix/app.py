@@ -14,9 +14,13 @@ AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 config = SyftClientConfig.load()
 client = SyftboxClient(config)
 path_top5_dp = Path(client.datasite_path.parent / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared" / "top5_series.json")
+path_local_recommends = Path(client.config.data_dir) / "private" / APP_NAME / "profile_0" / "recommendations.json"
 
 with open(path_top5_dp, "r", encoding="utf-8") as f:
     top5_dp = json.load(f)
+
+with open(path_local_recommends, "r", encoding="utf-8") as f:
+    local_recommends = json.load(f)
 
 
 app = FastSyftBox(
@@ -37,14 +41,20 @@ async def ui_home(request: Request):
         template_content = f.read()
     
     top_series = sorted(top5_dp, key=lambda x: x["count"], reverse=True)[:4]    # limited to top 4 and not 5 (for better visibility)
+    top_recommends = sorted(local_recommends, key=lambda x: x["raw_score"], reverse=True)[:4]    # limited to top 4 and not 5 (for better visibility)
 
     series_for_template = [
         {"name": item["name"], "img": item["img"]}
         for item in top_series
     ]
 
+    recommends_for_template = [
+        {"name": item["name"], "img": item["img"]}
+        for item in top_recommends
+    ]
+
     template = jinja2.Template(template_content)
 
-    rendered_content = template.render(series=series_for_template)
+    rendered_content = template.render(series=series_for_template, recommends=recommends_for_template)
 
     return HTMLResponse(rendered_content)

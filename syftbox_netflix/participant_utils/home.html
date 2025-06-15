@@ -153,22 +153,12 @@
         <div class="column-title">List 2: Based on Your Viewing History</div>
         <button class="feedback-button" onclick="">I prefer this list</button>
         <div class="top-series-row" id="recommended-series-row">
+          {% for item in recommends %}
           <div class="series-item">
-            <img src="https://www.whats-on-netflix.com/wp-content/uploads/covers/bridgerton.jpeg" alt="Bridgerton poster">
-            <div><strong>Bridgerton</strong></div>
+            <img src="{{ item.img }}" alt="{{ item.name }}">
+            <div><strong>{{ item.name }}</strong></div>
           </div>
-          <div class="series-item">
-            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABRMb6oKlW-ATK_gTsNoT13u4SGfO6CiHPkb1gY6AYgWX9FtQ-nDE4wRAxcmHFmjtFBB2qNoB-e89x3ARilL4nXxoHSuf9DAROcCb8NOlqKjecjyaRbn4_r2xbuVx71LxlbDxHkPKTOUExYcv1m03earWE2q5Z7I.jpg" alt="Grace and Frankie poster">
-            <div><strong>Grace and Frankie</strong></div>
-          </div>
-          <div class="series-item">
-            <img src="https://occ-0-1723-1722.1.nflxso.net/dnm/api/v6/XsrytRUxks8BtTRf9HNlZkW2tvY/AAAABVKgtHjYJI6hldkEU91fpHLiyrMJO9RguRee28Sr-EPaAwwGCjZijfnWnbYWWhAnwuIhlPNAdpDZtqzwQb5QgNYgLdpInYR1c53nQ8NWM_GpdWxXOUHGQjeUrLAZdYLLw5w.jpg" alt="Outlander poster">
-            <div><strong>Outlander</strong></div>
-          </div>
-          <div class="series-item">
-            <img src="https://occ-0-1722-1723.1.nflxso.net/dnm/api/v6/evlCitJPPCVCry0BZlEFb5-QjKc/AAAABcs35XN112JgIXdNx3Sy-rngulkj8ZVfq0fH_adB-Hqe-r0NQ76wEvhb8Wo5GvYjGo6o37RA1WPq8DqM-gpPXZEc51fCsutBNDa0dkQ7SA7dMkOfVOKQgcVQnvJ4RPu6DWQK345IA9BY3047MU9WggftWHfaXnQ.jpg" alt="The Umbrella Academy poster">
-            <div><strong>The Umbrella Academy</strong></div>
-          </div>
+          {% endfor %}
         </div>
       </div>
     </div>
