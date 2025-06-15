@@ -20,7 +20,7 @@ def local_recommendation(local_path, global_path, tv_vocab, exclude_watched=True
     user_aggregated_activity_path = os.path.join(local_path, "netflix_aggregated.npy")
     
     if not os.path.exists(user_U_path) or not os.path.exists(user_aggregated_activity_path):
-        logging.error("User data not found. Exiting recommendation process.")
+        logging.error(f"User data not found. Exiting recommendation process. --> U.npy ({user_U_path}) / netflix_aggregated.npy ({user_aggregated_activity_path})")
         return
 
     user_U = np.load(user_U_path)
