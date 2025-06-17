@@ -29,6 +29,10 @@ with open(raw_results, "r", encoding="utf-8") as f:
 with open(reranked_results, "r", encoding="utf-8") as f:
     all_reranked_recommends = json.load(f)
 
+top_series = sorted(top5_dp, key=lambda x: x["count"], reverse=True)[:5]
+raw_recommends = sorted(all_raw_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
+reranked_recommends = sorted(all_reranked_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
+
 app = FastSyftBox(
     app_name=APP_NAME,
     syftbox_endpoint_tags=[
@@ -45,10 +49,6 @@ async def ui_home(request: Request):
     template_path = current_dir / "participant_utils" / "home.html"
     with open(template_path, encoding="utf-8") as f:
         template_content = f.read()
-    
-    top_series = sorted(top5_dp, key=lambda x: x["count"], reverse=True)[:5]
-    raw_recommends = sorted(all_raw_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
-    reranked_recommends = sorted(all_reranked_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
 
     series_for_template = [
         {"name": item["name"], "img": item["img"], "id": item["id"]}
