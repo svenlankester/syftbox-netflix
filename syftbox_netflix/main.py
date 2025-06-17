@@ -213,30 +213,31 @@ def main(profile, profile_id):
     )
     logging.info("Top-5 DP process completed.")
 
-    finetuned_flag_path = os.path.join(
-        restricted_public_folder, "svd_training", "local_finetuning_succeed.txt"
+
+    # Removed for prototype
+    # finetuned_flag_path = os.path.join(
+    #     restricted_public_folder, "svd_training", "local_finetuning_succeed.txt"
+    # )
+    # if os.path.exists(finetuned_flag_path):
+    #     logging.info(f"Fine-tuning already completed for {profile_masked_name}: {finetuned_flag_path}.")
+    # else:
+    #     logging.warning(
+    #         f"Fine-tuning not yet triggered for {profile_masked_name}. Starting process..."
+    #     )
+
+    logging.info(f"Starting SVD Recommendation Engine fine-tuning process for {profile_masked_name}...")
+    participant_fine_tuning(
+        profile_id,
+        private_folder,
+        restricted_shared_folder,
+        restricted_public_folder,
+        epsilon=1,
+        noise_type="gaussian",
+        clipping_threshold=None,
+        plot=False,
+        dp_all=False,
     )
-    if os.path.exists(finetuned_flag_path):
-        logging.info(f"Fine-tuning already completed for {profile_masked_name}: {finetuned_flag_path}.")
-    else:
-        logging.warning(
-            f"Fine-tuning not yet triggered for {profile_masked_name}. Starting process..."
-        )
-        logging.info(
-            f"Starting SVD Recommendation Engine fine-tuning process for {profile_masked_name}..."
-        )
-        participant_fine_tuning(
-            profile_id,
-            private_folder,
-            restricted_shared_folder,
-            restricted_public_folder,
-            epsilon=1,
-            noise_type="gaussian",
-            clipping_threshold=None,
-            plot=False,
-            dp_all=False,
-        )
-        logging.info("Fine-tuning completed successfully.")
+    logging.info("Fine-tuning completed successfully.")
 
     # Save the version of the last running process
     current_version = 1.01
@@ -265,21 +266,32 @@ def main(profile, profile_id):
             f"Could not find TV vocabulary file: {e}"
         )
         
-        recommendations = local_recommendation(
+        raw_recommendations, reranked_recommendations = local_recommendation(
             participant_private_path,
             shared_folder_path,
             tv_vocab,
             exclude_watched=True,
         )
 
-        results_path = participant_private_path / "recommendations.json"
+        raw_results_path = participant_private_path / "raw_recommendations.json"
         try:
-            os.makedirs(os.path.dirname(results_path), exist_ok=True)
-            with open(results_path, 'w') as f:
-                json.dump(recommendations, f, indent=4)
+            os.makedirs(os.path.dirname(raw_results_path), exist_ok=True)
+            with open(raw_results_path, 'w') as f:
+                json.dump(raw_recommendations, f, indent=4)
         except (IOError, TypeError) as e:
             logging.error(
-                f"ERROR: Failed to write local recommendations to output file: {e}"
+                f"ERROR: Failed to write local raw recommendations to output file: {e}"
+            )
+
+        reranked_results_path = participant_private_path / "reranked_recommendations.json"
+
+        try:
+            os.makedirs(os.path.dirname(reranked_results_path), exist_ok=True)
+            with open(reranked_results_path, 'w') as f:
+                json.dump(reranked_recommendations, f, indent=4)
+        except (IOError, TypeError) as e:
+            logging.error(
+                f"ERROR: Failed to write local reranked recommendations to output file: {e}"
             )
 
     except Exception as e:

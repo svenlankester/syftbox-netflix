@@ -15,7 +15,8 @@ dependencies = [
     "phe",
     "matplotlib",
     "fastsyftbox",
-    "jinja2"
+    "jinja2",
+    "sentence-transformers"
 ]
 
 [build-system]
