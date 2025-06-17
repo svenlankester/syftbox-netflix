@@ -61,6 +61,7 @@ def local_recommendation(local_path, global_path, tv_vocab, exclude_watched=True
 
     print("(Unprocessed) Recommended based on most recently watched:")
     raw_top5 = get_top5_data(raw_recommendations, df)
+    print("(Re-ranked) Recommended based on most recently watched:")
     reranked_top5 = get_top5_data(reranked_recommendations, df) 
 
     return raw_top5, reranked_top5
