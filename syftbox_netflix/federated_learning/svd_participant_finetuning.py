@@ -37,6 +37,13 @@ def save_training_results(user_id, private_path, restricted_path, V, delta_V, U_
     np.save(participant_v_save_path, V)
     np.save(participant_deltav_save_path, delta_V)
 
+    # Removed for prototype
+    # # Write log in the restricted folder
+    # with open(
+    #     os.path.join(user_restricted_path, "local_finetuning_succeed.txt"), "w"
+    # ) as f:
+    #     f.write(f"User {user_id} training results saved.")
+
     # Save updated user matrix
     user_matrix_path = os.path.join(user_private_path, "U.npy")
     np.save(user_matrix_path, U_u)

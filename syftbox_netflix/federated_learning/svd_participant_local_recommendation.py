@@ -12,6 +12,7 @@ def mmr_rerank_predictions(unprocessed_predictions, lambda_param=0.5, top_n=5):
     Args:
         unprocessed_predictions (List): List of predicted scores as tuples (title, item_id, predicted_rating)
         lambda_param (float): Trade-off between relevance and item fairness (0 = only item fairness, 1 = only relevance)
+        TODO: (analyze, not implement) Item exposure
         top_n (int): number of items to return
     """
     model = SentenceTransformer("all-MiniLM-L6-v2")  # Fast and good enough for short texts
@@ -30,7 +31,7 @@ def mmr_rerank_predictions(unprocessed_predictions, lambda_param=0.5, top_n=5):
         for idx in candidate_indices:
             relevance = ratings_normalized[idx]
 
-            # Get a diversity penalty based on
+            # Get a diversity penalty based on cosine similarity
             if not selected_indices:
                 diversity_penalty = 0
             else:
@@ -72,14 +73,15 @@ def compute_recommendations(
         "For week (of all years)", recent_week, "watched n_shows=:", len(recent_items)
     )
 
+    """ Temporarily removed for experiments to avoid inconsistent results based on user data """
     # Combine long-term and recent preferences
-    alpha = 0.7  # Weight for long-term preferences
-    beta = 0.3  # Weight for recent preferences
-    if recent_item_ids:
-        U_global_activity = sum(global_V[item_id] for item_id in recent_item_ids) / len(recent_item_ids)
-        U_recent = alpha * user_U + beta * U_global_activity
-    else:
-        U_recent = user_U  # fallback
+    # alpha = 0.7  # Weight for long-term preferences
+    # beta = 0.3  # Weight for recent preferences
+    # if recent_item_ids:
+    #     U_global_activity = sum(global_V[item_id] for item_id in recent_item_ids) / len(recent_item_ids)
+    #     U_recent = alpha * user_U + beta * U_global_activity
+    # else:
+    U_recent = user_U  # fallback
 
     # Prepare candidate items
     all_items = list(tv_vocab.keys())
@@ -105,6 +107,6 @@ def compute_recommendations(
     predictions.sort(key=lambda x: x[2], reverse=True)
 
     raw_predictions = copy.deepcopy(predictions)
-    reranked_predictions = mmr_rerank_predictions(predictions)
+    reranked_predictions = mmr_rerank_predictions(predictions, 0.5, 5)
 
     return raw_predictions[:5], reranked_predictions[:5]  # Return top 5 recommendations
