@@ -21,7 +21,7 @@ def mmr_rerank_predictions(unprocessed_predictions, lambda_param=0.5, top_n=5):
 
     # Normalize predicted ratings from [1, 5] to [0, 1]
     ratings = np.array([pred_rating for _, _, pred_rating in unprocessed_predictions])
-    ratings_normalized = (ratings - np.mean(ratings)) / np.mean(ratings)
+    ratings_normalized = np.abs((ratings - np.mean(ratings))) / np.mean(ratings)
 
     selected_indices = []
     candidate_indices = list(range(len(unprocessed_predictions)))
@@ -107,6 +107,6 @@ def compute_recommendations(
     predictions.sort(key=lambda x: x[2], reverse=True)
 
     raw_predictions = copy.deepcopy(predictions)
-    reranked_predictions = mmr_rerank_predictions(predictions, 0, 5)
+    reranked_predictions = mmr_rerank_predictions(predictions, 0.5, 5)
 
     return raw_predictions[:5], reranked_predictions[:5]  # Return top 5 recommendations
