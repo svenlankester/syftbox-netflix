@@ -265,21 +265,31 @@ def main(profile, profile_id):
             f"Could not find TV vocabulary file: {e}"
         )
         
-        recommendations = local_recommendation(
+        raw_recommendations, reranked_recommendations = local_recommendation(
             participant_private_path,
             shared_folder_path,
             tv_vocab,
             exclude_watched=True,
         )
 
-        results_path = 'results/recommendations.json'
+        raw_results_path = participant_private_path / "raw_recommendations.json"
         try:
-            os.makedirs(os.path.dirname(results_path), exist_ok=True)
-            with open(results_path, 'w') as f:
-                json.dump(recommendations, f, indent=4)
+            os.makedirs(os.path.dirname(raw_results_path), exist_ok=True)
+            with open(raw_results_path, 'w') as f:
+                json.dump(raw_recommendations, f, indent=4)
         except (IOError, TypeError) as e:
             logging.error(
-                f"ERROR: Failed to write local recommendations to output file: {e}"
+                f"ERROR: Failed to write local raw recommendations to output file: {e}"
+            )
+
+        reranked_results_path = participant_private_path / "reranked_recommendations.json"
+        try:
+            os.makedirs(os.path.dirname(reranked_results_path), exist_ok=True)
+            with open(reranked_results_path, 'w') as f:
+                json.dump(reranked_recommendations, f, indent=4)
+        except (IOError, TypeError) as e:
+            logging.error(
+                f"ERROR: Failed to write local reranked recommendations to output file: {e}"
             )
 
     except Exception as e:
