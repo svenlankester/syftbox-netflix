@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from fastsyftbox import FastSyftBox
 from fastapi import Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from syft_core import Client as SyftboxClient
 from syft_core import SyftClientConfig
 
@@ -13,25 +13,29 @@ AGGREGATOR_DATASITE = os.getenv("AGGREGATOR_DATASITE")
 
 config = SyftClientConfig.load()
 client = SyftboxClient(config)
-path_top5_dp = Path(client.datasite_path.parent / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared" / "top5_series.json")
-participant_private_path = (
-            Path(client.config.data_dir) / "private" / APP_NAME / "profile_0"
-        )
-raw_results = participant_private_path / "raw_recommendations.json"
-reranked_results = participant_private_path / "reranked_recommendations.json"
 
-with open(path_top5_dp, "r", encoding="utf-8") as f:
-    top5_dp = json.load(f)
+def load_data():
+    path_top5_dp = Path(client.datasite_path.parent / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared" / "top5_series.json")
+    participant_private_path = (
+                Path(client.config.data_dir) / "private" / APP_NAME / "profile_0"
+            )
+    raw_results = participant_private_path / "raw_recommendations.json"
+    reranked_results = participant_private_path / "reranked_recommendations.json"
 
-with open(raw_results, "r", encoding="utf-8") as f:
-    all_raw_recommends = json.load(f)
+    with open(path_top5_dp, "r", encoding="utf-8") as f:
+        top5_dp = json.load(f)
 
-with open(reranked_results, "r", encoding="utf-8") as f:
-    all_reranked_recommends = json.load(f)
+    with open(raw_results, "r", encoding="utf-8") as f:
+        all_raw_recommends = json.load(f)
 
-top_series = sorted(top5_dp, key=lambda x: x["count"], reverse=True)[:5]
-raw_recommends = sorted(all_raw_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
-reranked_recommends = sorted(all_reranked_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
+    with open(reranked_results, "r", encoding="utf-8") as f:
+        all_reranked_recommends = json.load(f)
+
+    top_series = sorted(top5_dp, key=lambda x: x["count"], reverse=True)[:5]
+    raw_recommends = sorted(all_raw_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
+    reranked_recommends = sorted(all_reranked_recommends, key=lambda x: x["raw_score"], reverse=True)[:5]
+
+    return top_series, raw_recommends, reranked_recommends
 
 app = FastSyftBox(
     app_name=APP_NAME,
@@ -45,6 +49,8 @@ app = FastSyftBox(
 # normal fastapi
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def ui_home(request: Request):
+    top_series, raw_recommends, reranked_recommends = load_data()
+    
     current_dir = Path(__file__).parent
     template_path = current_dir / "participant_utils" / "home.html"
     with open(template_path, encoding="utf-8") as f:
@@ -74,3 +80,8 @@ async def ui_home(request: Request):
     )
 
     return HTMLResponse(rendered_content)
+
+@app.post("/choice")
+async def choice(data: dict):
+    print(f"User chose series ID {data.get('id')} from column {data.get('column')}")
+    return JSONResponse({"message": f"Received choice from column {data.get('column')} (ID: {data.get('id')})"})

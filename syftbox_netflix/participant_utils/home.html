@@ -162,13 +162,13 @@
             {% if loop.last and loop.length % 2 == 1 %}
               <div style="grid-column: span 2; display: flex; justify-content: center;">
                 <div class="series-item">
-                  <img src="{{ item.img }}" alt="{{ item.name }}" onclick="alert({{ item.id }})">
+                  <img src="{{ item.img }}" alt="{{ item.name }}" onclick="sendChoice({{ item.id }}, 1)">
                   <div><strong>{{ item.name }}</strong></div>
                 </div>
               </div>
           {% else %}
               <div class="series-item">
-                <img src="{{ item.img }}" alt="{{ item.name }}" onclick="alert({{ item.id }})">
+                <img src="{{ item.img }}" alt="{{ item.name }}" onclick="sendChoice({{ item.id }}, 1)">
                 <div><strong>{{ item.name }}</strong></div>
               </div>
           {% endif %}
@@ -185,13 +185,13 @@
           {% if loop.last and loop.length % 2 == 1 %}
           <div style="grid-column: span 2; display: flex; justify-content: center;">
             <div class="series-item">
-              <img src="{{ item.img }}" alt="{{ item.name }}" onclick="alert({{ item.id }})">
+              <img src="{{ item.img }}" alt="{{ item.name }}" onclick="sendChoice({{ item.id }}, 2)">
               <div><strong>{{ item.name }}</strong></div>
             </div>
           </div>
           {% else %}
           <div class="series-item">
-            <img src="{{ item.img }}" alt="{{ item.name }}" onclick="alert({{ item.id }})">
+            <img src="{{ item.img }}" alt="{{ item.name }}" onclick="sendChoice({{ item.id }}, 2)">
             <div><strong>{{ item.name }}</strong></div>
           </div>
           {% endif %}
@@ -204,5 +204,20 @@
       Thank you for helping us improve our recommendations! 🚀
     </div>
   </div>
+  <script>
+    async function sendChoice(id, column) {
+      const response = await fetch("/choice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id: id, column: column })
+      });
+
+      const data = await response.json();
+      //alert(data.message);
+      alert("Nice choice :)");
+    }
+  </script>
 </body>
 </html>
