@@ -213,30 +213,20 @@ def main(profile, profile_id):
     )
     logging.info("Top-5 DP process completed.")
 
-    finetuned_flag_path = os.path.join(
-        restricted_public_folder, "svd_training", "local_finetuning_succeed.txt"
+
+    logging.info(f"Starting SVD Recommendation Engine fine-tuning process for {profile_masked_name}...")
+    participant_fine_tuning(
+        profile_id,
+        private_folder,
+        restricted_shared_folder,
+        restricted_public_folder,
+        epsilon=1,
+        noise_type="gaussian",
+        clipping_threshold=None,
+        plot=False,
+        dp_all=False,
     )
-    if os.path.exists(finetuned_flag_path):
-        logging.info(f"Fine-tuning already completed for {profile_masked_name}: {finetuned_flag_path}.")
-    else:
-        logging.warning(
-            f"Fine-tuning not yet triggered for {profile_masked_name}. Starting process..."
-        )
-        logging.info(
-            f"Starting SVD Recommendation Engine fine-tuning process for {profile_masked_name}..."
-        )
-        participant_fine_tuning(
-            profile_id,
-            private_folder,
-            restricted_shared_folder,
-            restricted_public_folder,
-            epsilon=1,
-            noise_type="gaussian",
-            clipping_threshold=None,
-            plot=False,
-            dp_all=False,
-        )
-        logging.info("Fine-tuning completed successfully.")
+    logging.info("Fine-tuning completed successfully.")
 
     # Save the version of the last running process
     current_version = 1.01
