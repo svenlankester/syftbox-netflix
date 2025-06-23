@@ -14,6 +14,7 @@ from syft_core import SyftClientConfig
 from syftbox_netflix.aggregator.utils.frontend import populate_html_template
 from syftbox_netflix.aggregator.utils.syftbox import (
     create_shared_folder,
+    create_recommendation_dataset,
     network_participants,
     participants_datasets,
 )
@@ -52,6 +53,9 @@ def main():
             Path(client.datasite_path), APP_NAME, client, peers
         )
         logging.debug("Shared folder created successfully.")
+
+        logging.debug("Creating recommendation dataset...")
+        _ = create_recommendation_dataset(Path(client.datasite_path), APP_NAME, client, peers)
 
         # Paillier Homomorphic Encryption setup
         private_path = SYFTBOX_PATH / "private" / APP_NAME

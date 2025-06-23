@@ -1,6 +1,8 @@
+import csv
 import os
 import jinja2
 import json
+from datetime import datetime
 from pathlib import Path
 from fastsyftbox import FastSyftBox
 from fastapi import Request
@@ -83,5 +85,19 @@ async def ui_home(request: Request):
 
 @app.post("/choice")
 async def choice(data: dict):
+    _, raw_recommends, reranked_recommends = load_data()
+    reranked_list = [item['name'] for item in reranked_recommends]
+    raw_list = [item['name'] for item in raw_recommends]
+    timestamp = datetime.now().isoformat()
+    row = [timestamp, client.email, raw_list, reranked_list, data.get('column'), data.get('id')]
+
+    csv_file_path = Path(client.datasite_path.parent / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared" / "recommendations.csv")
+
+    print(f">> Append to Aggregator's CSV: {row}")
+    with open(csv_file_path, "a", newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(row)
+
     print(f"User chose series ID {data.get('id')} from column {data.get('column')}")
+
     return JSONResponse({"message": f"Received choice from column {data.get('column')} (ID: {data.get('id')})"})
