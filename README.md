@@ -41,7 +41,7 @@ Install and start SyftBox by running this command:
 ### 2. Install app on SyftBox
 From terminal, once SyftBox is running:
    ```bash
-   syftbox app install gubertoli/syftbox-netflix
+   syftbox app install https://github.com/gubertoli/syftbox-netflix
    ```
 
 ### 3. Set Up the Environment
