@@ -36,7 +36,7 @@ OUTPUT_DIR/
 Install and start SyftBox by running this command:
 
    ```bash
-   curl -LsSf https://syftbox.openmined.org/install.sh | sh
+   curl -fsSL https://syftbox.net/install.sh | sh
    ```
 ### 2. Install app on SyftBox
 From terminal, once SyftBox is running:
