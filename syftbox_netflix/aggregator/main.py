@@ -49,13 +49,13 @@ def main():
         )
 
         # Shared folder setup
-        shared_folder_path = create_shared_folder(
+        shared_folder_path, permissions = create_shared_folder(
             Path(client.datasite_path), APP_NAME, client, peers
         )
         logging.debug("Shared folder created successfully.")
 
         logging.debug("Creating recommendation dataset...")
-        _ = create_recommendation_dataset(Path(client.datasite_path), APP_NAME, client, peers)
+        _ = create_recommendation_dataset(Path(client.datasite_path), APP_NAME, client, peers, permissions)
 
         # Paillier Homomorphic Encryption setup
         private_path = SYFTBOX_PATH / "private" / APP_NAME
