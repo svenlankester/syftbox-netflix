@@ -5,7 +5,6 @@ description = "SyftBox Netflix"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "syft-core",
     "python-dotenv==1.0.1",
     "pandas",
     "rapidfuzz",
@@ -14,7 +13,8 @@ dependencies = [
     "diffprivlib>=0.6.5",
     "phe",
     "matplotlib",
-    "fastsyftbox",
+    "fastsyftbox>=0.1.12",
+    "syft-core>=0.2.5",
     "jinja2",
     "sentence-transformers"
 ]

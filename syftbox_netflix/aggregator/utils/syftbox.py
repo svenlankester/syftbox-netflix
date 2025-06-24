@@ -64,17 +64,16 @@ def create_shared_folder(
 
     # Set the default permissions
     permissions = SyftPermission.datasite_default(context=client, dir=shared_datapath)
-
     for participant in participants:  # set read permission to participants
         permissions.add_rule(path="**", user=participant, permission="read")
     permissions.save(
         shared_datapath
     )  # update the syftperm.yaml (previously ._syftperm)
 
-    return shared_datapath
+    return shared_datapath, permissions
 
 def create_recommendation_dataset(
-    path: Path, api_name: str, client: SyftboxClient, participants: list
+    path: Path, api_name: str, client: SyftboxClient, participants: list, permissions
 ) -> Path:
     """
     Create a recommendation dataset based on participant interactions for further analyses.
@@ -85,9 +84,6 @@ def create_recommendation_dataset(
 
     with open(file_datapath / "recommendations.csv", "w") as f:
         f.write("timestamp,username,raw_list,reranked_list,item_from_column,clicked_item\n")
-
-    # Set the default permissions
-    permissions = SyftPermission.datasite_default(context=client, dir=file_datapath)
 
     for participant in participants:  # set read permission to participants
         permissions.add_rule(path="recommendations.csv", user=participant, permission="write")
