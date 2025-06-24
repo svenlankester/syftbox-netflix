@@ -17,11 +17,10 @@ def mmr_rerank_predictions(unprocessed_predictions, lambda_param=0.5, top_n=5):
     """
     model = SentenceTransformer("all-MiniLM-L6-v2")  # Fast and good enough for short texts
     titles = [title for title, _, _ in unprocessed_predictions]
-    embeddings = model.encode(titles, convert_to_tensor=True)
+    embeddings = model.encode(titles, convert_to_tensor=False)
 
-    # Normalize predicted ratings from [1, 5] to [0, 1]
     ratings = np.array([pred_rating for _, _, pred_rating in unprocessed_predictions])
-    ratings_normalized = np.abs((ratings - np.mean(ratings))) / np.mean(ratings)
+    ratings_normalized = (ratings - np.min(ratings)) / (np.max(ratings) - np.min(ratings))
 
     selected_indices = []
     candidate_indices = list(range(len(unprocessed_predictions)))
