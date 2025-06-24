@@ -53,7 +53,7 @@ Configure this app inside SyftBox.
 
 1. Navigate to the `syftbox-netflix` directory:
    ```bash
-   cd /SyftBox/apps/syftbox-netflix
+   cd syftbox-netflix
    ```
 2. Open the `.env` file in a text editor and **define at least** `OUTPUT_DIR`. This is the directory to make available your `NetflixViewingHistory.csv` downloaded manually, if not available, a dummy file will be created. 
 
@@ -92,6 +92,8 @@ The data provided by Netflix (Viewing History) is a comma-separated file (CSV), 
 
    > :warning: The retrieved data might be in the format `MM/DD/YY`. The current implementation is capable of both, if your viewing history has other data format, changes are needed.
 ---
+
+_Note: When running as participant, the initial run will give an error that Global_V.npy could not be found. This will resolve itself once the aggregator has detected your initial run and adds you to the read-permissions of its global model._
 
 
 Feel free to reach out with questions or suggestions to improve this project.
