@@ -91,7 +91,16 @@ async def choice(data: dict):
     reranked_list = [item['name'] for item in reranked_recommends]
     raw_list = [item['name'] for item in raw_recommends]
     timestamp = datetime.now().isoformat()
-    row = [timestamp, client.email, raw_list, reranked_list, data.get('column'), data.get('id')]
+    
+    # [!] Here we assume that column 1 will be the raw recommends and otherwise (2) will be the reranked ones
+    if data.get('column') == 1:
+        column = "Unprocessed"
+        title_chosen = next((item["name"] for item in raw_recommends if item["id"] == data.get('id')), None)
+    else:
+        column = "Re-ranked"
+        title_chosen = next((item["name"] for item in reranked_recommends if item["id"] == data.get('id')), None)
+
+    row = [timestamp, client.email, raw_list, reranked_list, column, title_chosen]
 
     csv_file_path = Path(client.datasite_path.parent / AGGREGATOR_DATASITE / "app_data" / APP_NAME / "shared" / "recommendations.csv")
 
@@ -100,6 +109,6 @@ async def choice(data: dict):
         writer = csv.writer(f)
         writer.writerow(row)
 
-    print(f"User chose series ID {data.get('id')} from column {data.get('column')}")
+    print(f"User chose series ID {data.get('id')} ({title_chosen}) from column {data.get('column')} ({column})")
 
-    return JSONResponse({"message": f"Received choice from column {data.get('column')} (ID: {data.get('id')})"})
+    return JSONResponse({"message": f"Received choice from column {data.get('column')} ({column}) (ID: {data.get('id')} - {title_chosen})"})
