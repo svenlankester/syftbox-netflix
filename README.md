@@ -39,9 +39,13 @@ Install and start SyftBox by running this command:
    curl -fsSL https://syftbox.net/install.sh | sh
    ```
 ### 2. Install app on SyftBox
-From terminal, once SyftBox is running:
+From terminal, once SyftBox is running, navigate to the SyftBox apps directory:
    ```bash
-   syftbox app install https://github.com/gubertoli/syftbox-netflix
+   cd /SyftBox/apps
+   ```
+Then clone the app's repository to install the app:
+   ```bash
+   git clone https://github.com/gubertoli/syftbox-netflix
    ```
 
 ### 3. Set Up the Environment
