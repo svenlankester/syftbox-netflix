@@ -37,8 +37,11 @@ def populate_html_template(json_path: Path, template_path: Path, output_path: Pa
 
         # Generate the series cards for recommended series (if provided)
         recommended_cards = ""
+
+        print(f">> [frontend.py] Recommendations: {recommendations}")
         if recommendations:
-            for item in recommendations:
+            raw_list, _ = recommendations       # Using only the raw recommendations
+            for item in raw_list:
                 recommended_cards += f"""
                 <div class="series-item">
                     <img width="110" height="155" src="{item['img']}" alt="{item['name']}">
